@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>MDTS PT Tracker</title>
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
 <header class="app-header">
@@ -48,7 +48,8 @@
   <section id="view-dashboard" class="view hidden">
     <nav class="viewnav">
       <button class="viewnav-btn active" data-view="dashboard" type="button">My PT</button>
-      <button class="viewnav-btn hidden" id="nav-admin" data-view="admin" type="button">Unit Admin</button>
+      <button class="viewnav-btn hidden admin-only" data-view="admin" type="button">Unit Admin</button>
+      <button class="viewnav-btn hidden admin-only" data-view="reports" type="button">Reports</button>
     </nav>
 
     <div class="stats">
@@ -87,6 +88,7 @@
     <nav class="viewnav">
       <button class="viewnav-btn" data-view="dashboard" type="button">My PT</button>
       <button class="viewnav-btn active" data-view="admin" type="button">Unit Admin</button>
+      <button class="viewnav-btn" data-view="reports" type="button">Reports</button>
     </nav>
     <div class="card">
       <h2>Unit Roster</h2>
@@ -100,13 +102,56 @@
       <button class="btn btn-ghost" id="btn-back-roster" type="button">Back to roster</button>
     </div>
   </section>
+
+  <!-- Reports -->
+  <section id="view-reports" class="view hidden">
+    <nav class="viewnav">
+      <button class="viewnav-btn" data-view="dashboard" type="button">My PT</button>
+      <button class="viewnav-btn" data-view="admin" type="button">Unit Admin</button>
+      <button class="viewnav-btn active" data-view="reports" type="button">Reports</button>
+    </nav>
+
+    <div class="card">
+      <h2>Unit Report</h2>
+      <div class="presets" id="report-presets">
+        <button class="chip active" data-preset="today" type="button">Today</button>
+        <button class="chip" data-preset="week" type="button">This Week</button>
+        <button class="chip" data-preset="last7" type="button">Past 7 Days</button>
+        <button class="chip" data-preset="month" type="button">This Month</button>
+        <button class="chip" data-preset="last30" type="button">Past 30 Days</button>
+        <button class="chip" data-preset="custom" type="button">Custom</button>
+      </div>
+      <div class="grid2 hidden" id="report-custom">
+        <label>Start date <input type="date" id="report-start"></label>
+        <label>End date <input type="date" id="report-end"></label>
+      </div>
+      <p class="muted" id="report-range-label"></p>
+      <div class="stats" id="report-stats"></div>
+    </div>
+
+    <div class="card">
+      <div class="report-tabs">
+        <button class="viewnav-btn active" data-rtab="roster" type="button">Roster Summary</button>
+        <button class="viewnav-btn" data-rtab="activity" type="button">Activity Logs</button>
+      </div>
+      <div class="report-toolbar">
+        <input type="search" id="report-search" placeholder="Search name or activity" autocomplete="off">
+        <div class="report-actions">
+          <button class="btn btn-ghost" id="btn-print-report" type="button">Print</button>
+          <button class="btn btn-ghost" id="btn-export-csv" type="button">Download CSV</button>
+        </div>
+      </div>
+      <div id="report-roster-wrap"></div>
+      <div id="report-activity-wrap" class="hidden"></div>
+    </div>
+  </section>
 </main>
 
 <footer class="app-footer">
   <p>MDTS PT Tracker &bull; Daily physical training logging</p>
 </footer>
 
-<script src="config.js?v=2"></script>
-<script type="module" src="app.js?v=2"></script>
+<script src="config.js?v=3"></script>
+<script type="module" src="app.js?v=3"></script>
 </body>
 </html>
