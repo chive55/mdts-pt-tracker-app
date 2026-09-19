@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>MDTS PT Tracker</title>
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
 <header class="app-header">
@@ -15,8 +15,21 @@
       <p>USAF &bull; Lackland MDTS</p>
     </div>
   </div>
-  <button id="btn-signout" class="btn btn-ghost hidden">Sign out</button>
+  <div class="header-actions">
+    <button id="btn-bell" class="icon-btn hidden" type="button" aria-label="Notifications">&#128276;<span id="bell-count" class="bell-count hidden">0</span></button>
+    <button id="btn-signout" class="btn btn-ghost hidden">Sign out</button>
+  </div>
 </header>
+
+<div id="notif-backdrop" class="drawer-backdrop hidden"></div>
+<aside id="notif-drawer" class="drawer hidden" aria-label="Unit alerts">
+  <div class="drawer-head">
+    <h2>Unit Alerts</h2>
+    <button id="btn-notif-close" class="icon-btn" type="button" aria-label="Close">&#10005;</button>
+  </div>
+  <button id="btn-notif-read" class="link-btn" type="button">Mark all read</button>
+  <div id="notif-list" class="notif-list"><p class="muted">No alerts.</p></div>
+</aside>
 
 <main class="container">
   <!-- Auth -->
@@ -35,6 +48,16 @@
       </form>
       <form id="form-signup" class="hidden">
         <label>Full name<input type="text" id="signup-name" required minlength="2" maxlength="80" autocomplete="name" placeholder="e.g. Jane Doe"></label>
+        <div class="grid2">
+          <label>Rank (optional)<select id="signup-rank">
+            <option value="">Select rank</option>
+            <option>AB</option><option>Amn</option><option>A1C</option><option>SrA</option>
+            <option>SSgt</option><option>TSgt</option><option>MSgt</option><option>SMSgt</option><option>CMSgt</option>
+            <option>2d Lt</option><option>1st Lt</option><option>Capt</option><option>Maj</option>
+            <option>Lt Col</option><option>Col</option><option>Civ</option>
+          </select></label>
+          <label>Flight (optional)<input type="text" id="signup-flight" maxlength="40" placeholder="e.g. Lab" autocomplete="off"></label>
+        </div>
         <label>Email<input type="email" id="signup-email" required autocomplete="email"></label>
         <label>Password<input type="password" id="signup-password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></label>
         <button class="btn btn-primary" type="submit">Create account</button>
@@ -58,9 +81,17 @@
       <div class="stat"><span class="stat-num" id="stat-minutes">0</span><span class="stat-label">Minutes</span></div>
     </div>
 
+    <div class="target-strip">
+      <span class="target-text">Weekly target <strong id="target-count">0 / 5</strong></span>
+      <div class="target-bar"><div id="target-fill"></div></div>
+    </div>
+
     <div class="card">
       <h2 id="log-form-title">Log PT</h2>
       <form id="form-log">
+        <div id="log-for-wrap" class="hidden">
+          <label>Log for member<select id="log-for-member"></select></label>
+        </div>
         <label>Date<input type="date" id="log-date" required></label>
         <div class="qchip-row" id="date-chips">
           <button type="button" class="qchip" data-days="0">Today</button>
@@ -113,6 +144,11 @@
       <h2>History</h2>
       <div id="history-list" class="history"><p class="muted">No logs yet.</p></div>
     </div>
+
+    <div class="card">
+      <h2>Official PFA</h2>
+      <div id="pfa-summary"><p class="muted">No official PFA recorded yet.</p></div>
+    </div>
   </section>
 
   <!-- Admin -->
@@ -124,16 +160,65 @@
     </nav>
     <div class="card">
       <h2>Unit Roster</h2>
+      <input type="search" id="roster-search" placeholder="Search roster" autocomplete="off">
       <label class="inline-label">Date <input type="date" id="admin-date"></label>
       <p class="muted" id="admin-summary"></p>
       <div id="roster-list" class="roster"></div>
     </div>
-    <div class="card hidden" id="member-detail-card">
-      <h2 id="member-detail-name"></h2>
-      <div id="member-detail-logs" class="history"></div>
-      <button class="btn btn-ghost" id="btn-back-roster" type="button">Back to roster</button>
-    </div>
   </section>
+
+  <!-- Member report modal (used by roster and reports) -->
+  <div id="modal-backdrop" class="modal-backdrop hidden"></div>
+  <div id="member-report-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Member report">
+    <div id="member-report"></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" id="btn-report-close" type="button">Close</button>
+    </div>
+  </div>
+
+  <!-- Edit member modal (admin) -->
+  <div id="member-edit-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Edit member">
+    <h2 id="member-edit-title">Edit member</h2>
+    <form id="form-member-edit">
+      <div class="grid2">
+        <label>Rank<select id="m-rank"></select></label>
+        <label>Role<select id="m-role">
+          <option value="member">Member</option>
+          <option value="admin">Admin</option>
+        </select></label>
+      </div>
+      <label>Full name<input type="text" id="m-name" required minlength="2" maxlength="80"></label>
+      <label>Flight<input type="text" id="m-flight" maxlength="40" placeholder="e.g. Lab"></label>
+      <label>PFA due date<input type="date" id="m-pfa-due"></label>
+      <p id="member-edit-error" class="error hidden"></p>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Save</button>
+        <button class="btn btn-ghost" id="btn-member-edit-cancel" type="button">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Record PFA test modal (admin) -->
+  <div id="pfa-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Record PFA test">
+    <h2>Record PFA Test</h2>
+    <p class="muted" id="pfa-modal-member"></p>
+    <form id="form-pfa">
+      <div class="grid2">
+        <label>Test date<input type="date" id="pfa-date" required></label>
+        <label>Score (0-100)<input type="number" id="pfa-score" min="0" max="100" step="0.1" required inputmode="decimal"></label>
+      </div>
+      <label>Rating<select id="pfa-rating">
+        <option>Excellent</option>
+        <option>Satisfactory</option>
+        <option>Unsatisfactory</option>
+      </select></label>
+      <p id="pfa-error" class="error hidden"></p>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Save test</button>
+        <button class="btn btn-ghost" id="btn-pfa-cancel" type="button">Cancel</button>
+      </div>
+    </form>
+  </div>
 
   <!-- Reports -->
   <section id="view-reports" class="view hidden">
@@ -144,7 +229,7 @@
     </nav>
 
     <div class="card">
-      <h2>Unit Report</h2>
+      <h2>Unit PT Submission Report</h2>
       <div class="presets" id="report-presets">
         <button class="chip active" data-preset="today" type="button">Today</button>
         <button class="chip" data-preset="week" type="button">This Week</button>
@@ -157,8 +242,10 @@
         <label>Start date <input type="date" id="report-start"></label>
         <label>End date <input type="date" id="report-end"></label>
       </div>
+      <label>Flight<select id="report-flight"><option value="">All Flights</option></select></label>
       <p class="muted" id="report-range-label"></p>
       <div class="stats" id="report-stats"></div>
+      <button class="btn btn-primary" id="btn-remind-missing" type="button">Remind Missing (0)</button>
     </div>
 
     <div class="card">
@@ -183,7 +270,7 @@
   <p>MDTS PT Tracker &bull; Daily physical training logging</p>
 </footer>
 
-<script src="config.js?v=5"></script>
-<script type="module" src="app.js?v=5"></script>
+<script src="config.js?v=6"></script>
+<script type="module" src="app.js?v=6"></script>
 </body>
 </html>
