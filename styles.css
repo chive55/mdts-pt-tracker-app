@@ -172,3 +172,45 @@ textarea{resize:vertical}
 @media (min-width:700px){
   .brand-text h1{font-size:20px}
 }
+
+/* Reports */
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.chip{border:1px solid var(--line);background:var(--card2);color:var(--ink);border-radius:999px;padding:8px 14px;font-size:14px;cursor:pointer}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#0b1526;font-weight:700}
+.report-tabs{display:flex;gap:8px;margin-bottom:14px}
+.report-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:6px}
+.report-toolbar input[type="search"]{flex:1;min-width:180px}
+.report-actions{display:flex;gap:8px}
+.report-actions .btn{width:auto;padding:10px 14px}
+.table-scroll{overflow-x:auto;margin:0 -4px;padding:0 4px}
+table.report-table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px;margin-top:10px}
+.report-table th,.report-table td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.report-table th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.report-table th.sortable{cursor:pointer;user-select:none}
+.report-table th.sortable:hover{color:var(--ink)}
+.report-table td.num,.report-table th.num{text-align:right}
+.report-table .sub{color:var(--muted);font-size:12px}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.badge-logged{background:rgba(46,204,113,.16);color:#2ecc71}
+.badge-missing{background:rgba(231,76,60,.16);color:#e74c3c}
+.activity-row{padding:10px 2px;border-bottom:1px solid var(--line)}
+.activity-row .row-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.activity-row .who{font-weight:700}
+.activity-row .when{color:var(--muted);font-size:13px;white-space:nowrap}
+.activity-row .what{color:var(--ink);font-size:14px;margin-top:4px}
+.activity-row .notes{color:var(--muted);font-size:13px;margin-top:2px}
+
+@media print{
+  .app-header,.viewnav,.presets,.report-toolbar,.app-footer,#report-custom,.btn{display:none !important}
+  body{background:#fff;color:#000}
+  .view{display:block !important}
+  #view-dashboard,#view-admin{display:none !important}
+  #view-reports{display:block !important}
+  .card{box-shadow:none;border:1px solid #ccc;background:#fff;color:#000;break-inside:avoid}
+  .card h2{color:#000}
+  .muted,.report-table th,.report-table .sub{color:#444}
+  .badge{border:1px solid #999}
+  .badge-logged{color:#0a7a3d;background:none}
+  .badge-missing{color:#a02020;background:none}
+  #report-activity-wrap.hidden{display:none !important}
+}
