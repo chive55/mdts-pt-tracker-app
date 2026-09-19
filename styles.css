@@ -116,6 +116,13 @@ textarea{resize:vertical}
 }
 .viewnav-btn.active,.rtab-btn.active{color:var(--text);border-color:var(--accent);background:var(--card2)}
 
+.chart-wrap{margin:14px 0}
+.chart-wrap canvas{width:100%;display:block}
+.chart-title{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px}
+.flight-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.flight-pct{font-size:20px;font-weight:800;color:var(--gold)}
+.pfa-remind-all{width:auto !important;margin-top:0;white-space:nowrap}
+
 .stats{display:flex;gap:10px;margin-bottom:16px}
 .stat{
   flex:1;background:var(--card);border:1px solid var(--line);
@@ -204,7 +211,8 @@ textarea{resize:vertical}
 .presets{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
 .chip{border:1px solid var(--line);background:var(--card2);color:var(--ink);border-radius:999px;padding:8px 14px;font-size:14px;cursor:pointer}
 .chip.active{background:var(--accent);border-color:var(--accent);color:#0b1526;font-weight:700}
-.report-tabs{display:flex;gap:8px;margin-bottom:14px}
+.report-tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.report-tabs .rtab-btn{flex:1 1 40%}
 .report-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:6px}
 .report-toolbar input[type="search"]{flex:1;min-width:180px}
 .report-actions{display:flex;gap:8px}
