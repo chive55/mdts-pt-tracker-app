@@ -1284,7 +1284,7 @@ async function loadReports() {
   reportLogs = lRes.data || [];
   remindedIds = new Set((nRes.data || []).map((n) => n.user_id));
 
-  reportFlights = [...new Set(mRes.data.map((m) => (m.flight || "").trim()).filter(Boolean))].sort();
+  reportFlights = ["Lab", "BDC", "NutMed", "Pharm"];
   const fSel = $("report-flight");
   const cur = reportFlight;
   fSel.innerHTML = '<option value="">All Flights</option>' + reportFlights.map((f) =>
