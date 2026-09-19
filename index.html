@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>MDTS PT Tracker</title>
-<link rel="stylesheet" href="styles.css?v=11">
+<link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body>
 <header class="app-header">
@@ -74,7 +74,13 @@
             <option>2d Lt</option><option>1st Lt</option><option>Capt</option><option>Maj</option>
             <option>Lt Col</option><option>Col</option><option>Civ</option>
           </select></label>
-          <label>Flight (optional)<input type="text" id="signup-flight" maxlength="40" placeholder="e.g. Lab" autocomplete="off"></label>
+          <label>Flight (optional)<select id="signup-flight">
+            <option value="">Select flight...</option>
+            <option value="Lab">Lab</option>
+            <option value="BDC">BDC</option>
+            <option value="NutMed">NutMed</option>
+            <option value="Pharm">Pharm</option>
+          </select></label>
         </div>
         <label>Email<input type="email" id="signup-email" required autocomplete="email"></label>
         <label>Password<input type="password" id="signup-password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></label>
@@ -250,7 +256,13 @@
         </select></label>
       </div>
       <label>Full name<input type="text" id="m-name" required minlength="2" maxlength="80"></label>
-      <label>Flight<input type="text" id="m-flight" maxlength="40" placeholder="e.g. Lab"></label>
+      <label>Flight<select id="m-flight">
+          <option value="">Not set</option>
+          <option value="Lab">Lab</option>
+          <option value="BDC">BDC</option>
+          <option value="NutMed">NutMed</option>
+          <option value="Pharm">Pharm</option>
+        </select></label>
       <label>PFA due date<input type="date" id="m-pfa-due"></label>
       <p id="member-edit-error" class="error hidden"></p>
       <div class="form-actions">
@@ -266,7 +278,13 @@
     <form id="form-profile-edit">
       <div class="grid2">
         <label>Rank<select id="p-rank"></select></label>
-        <label>Flight<input type="text" id="p-flight" maxlength="40" placeholder="e.g. Lab"></label>
+        <label>Flight<select id="p-flight">
+          <option value="">Not set</option>
+          <option value="Lab">Lab</option>
+          <option value="BDC">BDC</option>
+          <option value="NutMed">NutMed</option>
+          <option value="Pharm">Pharm</option>
+        </select></label>
       </div>
       <label>Full name<input type="text" id="p-name" required minlength="2" maxlength="80"></label>
       <label>New password (optional)<input type="password" id="p-new-password" minlength="8" autocomplete="new-password" placeholder="Leave blank to keep your current password"></label>
@@ -356,7 +374,7 @@
   <p>MDTS PT Tracker &bull; Daily physical training logging</p>
 </footer>
 
-<script src="config.js?v=11"></script>
-<script type="module" src="app.js?v=11"></script>
+<script src="config.js?v=12"></script>
+<script type="module" src="app.js?v=12"></script>
 </body>
 </html>
