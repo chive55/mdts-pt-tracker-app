@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>MDTS PT Tracker</title>
-<link rel="stylesheet" href="styles.css?v=7">
+<link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
 <header class="app-header">
@@ -45,6 +45,24 @@
         <label>Email<input type="email" id="signin-email" required autocomplete="email"></label>
         <label>Password<input type="password" id="signin-password" required autocomplete="current-password"></label>
         <button class="btn btn-primary" type="submit">Sign in</button>
+      </form>
+      <p class="auth-alt"><button class="link-btn" id="btn-forgot" type="button">Forgot password?</button></p>
+      <form id="form-reset-request" class="hidden">
+        <p class="muted">Enter your account email and we will send you a link to reset your password.</p>
+        <label>Email<input type="email" id="reset-email" required autocomplete="email"></label>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Send reset link</button>
+          <button class="btn btn-ghost" id="btn-reset-back" type="button">Back</button>
+        </div>
+      </form>
+      <form id="form-reset-confirm" class="hidden">
+        <p class="muted">Choose a new password for your account.</p>
+        <label>New password<input type="password" id="reset-new-password" required minlength="8" autocomplete="new-password"></label>
+        <label>Confirm new password<input type="password" id="reset-new-password2" required minlength="8" autocomplete="new-password"></label>
+        <p id="reset-confirm-error" class="error hidden"></p>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Set new password</button>
+        </div>
       </form>
       <form id="form-signup" class="hidden">
         <label>Full name<input type="text" id="signup-name" required minlength="2" maxlength="80" autocomplete="name" placeholder="e.g. Jane Doe"></label>
@@ -217,6 +235,7 @@
         <label>Flight<input type="text" id="p-flight" maxlength="40" placeholder="e.g. Lab"></label>
       </div>
       <label>Full name<input type="text" id="p-name" required minlength="2" maxlength="80"></label>
+      <label>New password (optional)<input type="password" id="p-new-password" minlength="8" autocomplete="new-password" placeholder="Leave blank to keep your current password"></label>
       <p class="muted">Signed in as <span id="p-email"></span>. Ask an admin to change your email address.</p>
       <p id="profile-edit-error" class="error hidden"></p>
       <div class="form-actions">
@@ -298,7 +317,7 @@
   <p>MDTS PT Tracker &bull; Daily physical training logging</p>
 </footer>
 
-<script src="config.js?v=7"></script>
-<script type="module" src="app.js?v=7"></script>
+<script src="config.js?v=8"></script>
+<script type="module" src="app.js?v=8"></script>
 </body>
 </html>
