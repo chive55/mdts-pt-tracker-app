@@ -97,6 +97,7 @@ async function enterApp(user, fallbackName, extra) {
   if (profile.role === "admin") {
     document.querySelectorAll(".admin-only").forEach((el) => el.classList.remove("hidden"));
     await populateLogForMembers();
+    resetLogForm();
   }
   show("view-dashboard");
   await loadDashboard();
