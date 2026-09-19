@@ -613,23 +613,28 @@ function wireNotifs() {
 
 /* ---------- Admin ---------- */
 
+function goToView(target) {
+  document.querySelectorAll(".viewnav-btn").forEach((b) => b.classList.remove("active"));
+  document.querySelectorAll(`.viewnav-btn[data-view="${target}"]`).forEach((b) => b.classList.add("active"));
+  if (target === "admin") {
+    show("view-admin");
+    loadRoster();
+  } else if (target === "reports") {
+    show("view-reports");
+    loadReports();
+  } else if (target === "profile") {
+    show("view-profile");
+  } else {
+    show("view-dashboard");
+  }
+}
+
 function wireNav() {
   document.querySelectorAll(".viewnav-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const target = btn.dataset.view;
-      document.querySelectorAll(".viewnav-btn").forEach((b) => b.classList.remove("active"));
-      document.querySelectorAll(`.viewnav-btn[data-view="${target}"]`).forEach((b) => b.classList.add("active"));
-      if (target === "admin") {
-        show("view-admin");
-        loadRoster();
-      } else if (target === "reports") {
-        show("view-reports");
-        loadReports();
-      } else {
-        show("view-dashboard");
-      }
-    });
+    btn.addEventListener("click", () => goToView(btn.dataset.view));
   });
+  const gotoProfile = $("btn-goto-profile");
+  if (gotoProfile) gotoProfile.addEventListener("click", () => goToView("profile"));
   $("admin-date").addEventListener("change", loadRoster);
   $("roster-search").addEventListener("input", () => {
     const date = $("admin-date").value || todayStr();
