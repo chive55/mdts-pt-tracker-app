@@ -140,38 +140,136 @@ function wireAuthForms() {
 
 /* ---------- Dashboard ---------- */
 
-function addActivityRow(data = {}) {
-  const wrap = document.createElement("div");
-  wrap.className = "activity";
-  wrap.innerHTML = `
-    <div class="activity-head"><strong>Activity</strong>
-      <button type="button" class="activity-remove">Remove</button></div>
-    <label>Exercise name<input type="text" class="a-name" maxlength="80" placeholder="e.g. Run, Push-ups" value="${(data.name || "").replace(/"/g, "&quot;")}"></label>
-    <div class="grid2">
-      <label>Sets<input type="number" class="a-sets" min="1" max="999" inputmode="numeric" value="${data.sets || ""}"></label>
-      <label>Reps<input type="number" class="a-reps" min="1" max="9999" inputmode="numeric" value="${data.reps || ""}"></label>
-    </div>
-    <div class="grid2">
-      <label>Distance<input type="text" class="a-distance" maxlength="40" placeholder="e.g. 3.1 mi" value="${(data.distance || "").replace(/"/g, "&quot;")}"></label>
-      <label>Time<input type="text" class="a-time" maxlength="40" placeholder="e.g. 28:30" value="${(data.time || "").replace(/"/g, "&quot;")}"></label>
-    </div>`;
-  wrap.querySelector(".activity-remove").addEventListener("click", () => {
-    if ($("activities").children.length > 1) wrap.remove();
+/* ---------- Workout log form: session type + intensity pickers ---------- */
+
+const SESSION_TYPES = [
+  { name: "Running", title: "Aerobic run", location: "Base track", duration: 30, distance: 2.5, reps: null },
+  { name: "Weightlifting", title: "Strength training", location: "Base gym", duration: 45, distance: null, reps: 50 },
+  { name: "Swimming", title: "Swim laps", location: "Base pool", duration: 40, distance: 0.5, reps: null },
+  { name: "Calisthenics", title: "Push-ups and sit-ups", location: "Squadron fitness area", duration: 35, distance: null, reps: 50 },
+  { name: "Cycling", title: "Endurance ride", location: "Base trail", duration: 45, distance: 5.0, reps: null },
+  { name: "Rowing", title: "Rowing intervals", location: "Base gym", duration: 30, distance: null, reps: null },
+  { name: "Ruck March", title: "Ruck march", location: "Base perimeter route", duration: 60, distance: 4.0, reps: null },
+  { name: "HIIT / Cross-Training", title: "HIIT circuit", location: "Fitness annex", duration: 40, distance: null, reps: null },
+  { name: "Unit PT", title: "Unit PT formation", location: "Parade field", duration: 60, distance: null, reps: null },
+  { name: "Flexibility & Yoga", title: "Mobility and recovery", location: "Fitness annex", duration: 30, distance: null, reps: null },
+];
+
+const INTENSITIES = [
+  { level: "Low", hint: "RPE 1-3", desc: "Easy recovery pace", rpe: 3, cls: "sel-low" },
+  { level: "Moderate", hint: "RPE 4-6", desc: "Steady aerobic zone", rpe: 6, cls: "sel-mod" },
+  { level: "High", hint: "RPE 7-8", desc: "Hard effort", rpe: 8, cls: "sel-high" },
+  { level: "Maximum", hint: "RPE 9-10", desc: "All-out effort", rpe: 10, cls: "sel-max" },
+];
+
+let selSessionType = "Running";
+let selIntensity = "Moderate";
+
+function setOn(selector, attr, val) {
+  document.querySelectorAll(selector).forEach((c) =>
+    c.classList.toggle("on", c.dataset[attr] === String(val)));
+}
+
+function buildPickers() {
+  const sp = $("session-picker");
+  sp.innerHTML = "";
+  SESSION_TYPES.forEach((t) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pick-btn" + (t.name === selSessionType ? " selected" : "");
+    b.textContent = t.name;
+    b.addEventListener("click", () => selectSessionType(t.name, true));
+    sp.appendChild(b);
   });
-  $("activities").appendChild(wrap);
+  const ip = $("intensity-picker");
+  ip.innerHTML = "";
+  INTENSITIES.forEach((it) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "intensity-card" + (it.level === selIntensity ? " " + it.cls : "");
+    b.title = it.desc;
+    b.innerHTML = `<div class="lv">${it.level}</div><div class="hint">${it.hint}</div>`;
+    b.addEventListener("click", () => selectIntensity(it.level, true));
+    ip.appendChild(b);
+  });
+}
+
+function selectSessionType(name, applyDefaults) {
+  selSessionType = name;
+  document.querySelectorAll("#session-picker .pick-btn").forEach((b) =>
+    b.classList.toggle("selected", b.textContent === name));
+  const t = SESSION_TYPES.find((x) => x.name === name);
+  if (applyDefaults && t) {
+    $("log-title").value = t.title;
+    $("log-location").value = t.location;
+    $("log-duration").value = t.duration;
+    $("log-distance").value = t.distance == null ? "" : t.distance;
+    $("log-reps").value = t.reps == null ? "" : t.reps;
+    setOn("#duration-chips .qchip", "val", t.duration);
+  }
+}
+
+function selectIntensity(level, applyRpe) {
+  selIntensity = level;
+  const cls = (INTENSITIES.find((i) => i.level === level) || {}).cls || "";
+  document.querySelectorAll("#intensity-picker .intensity-card").forEach((b) => {
+    const on = b.querySelector(".lv").textContent === level;
+    b.className = "intensity-card" + (on ? " " + cls : "");
+  });
+  if (applyRpe) {
+    const it = INTENSITIES.find((i) => i.level === level);
+    if (it) $("log-rpe").value = it.rpe;
+  }
+}
+
+function sessionSummary(log) {
+  const parts = [];
+  if (log.session_type) parts.push(log.session_type);
+  if (log.intensity) parts.push(log.intensity + (log.rpe ? ` (RPE ${log.rpe})` : ""));
+  if (log.distance_miles) parts.push(`${log.distance_miles} mi`);
+  if (log.reps) parts.push(`${log.reps} reps`);
+  if (log.location) parts.push(log.location);
+  return parts.join(" · ");
+}
+
+function logWhat(log) {
+  if (log.session_type || log.title) {
+    const s = sessionSummary(log);
+    return (log.title || log.session_type) + (s ? " (" + s + ")" : "");
+  }
+  return (log.activities || []).map((a) => a.name + activitySummary(a)).join("; ");
+}
+
+function logDetailHTML(log) {
+  if (log.session_type || log.title) {
+    const tags = log.ptl_verified ? '<span class="tag ptl">PTL verified</span>' : "";
+    return `
+      <div class="log-meta">${log.duration_minutes} minutes${log.intensity ? " · " + esc(log.intensity) : ""}${log.rpe ? " · RPE " + log.rpe : ""}</div>
+      <div class="log-title">${esc(log.title || log.session_type || "PT session")}</div>
+      ${sessionSummary(log) ? `<div class="log-sub">${esc(sessionSummary(log))}</div>` : ""}
+      ${log.notes ? `<div class="log-notes">${esc(log.notes)}</div>` : ""}
+      ${tags ? `<div class="log-tags">${tags}</div>` : ""}`;
+  }
+  const acts = (log.activities || []).map((a) => `<li>${esc(a.name)}${activitySummary(a)}</li>`).join("");
+  return `
+    <div class="log-meta">${log.duration_minutes} minutes</div>
+    <ul>${acts}</ul>
+    ${log.notes ? `<div class="log-notes">${esc(log.notes)}</div>` : ""}`;
 }
 
 function resetLogForm() {
   editingDate = null;
   $("log-form-title").textContent = "Log PT";
   $("log-date").value = todayStr();
-  $("activities").innerHTML = "";
-  addActivityRow();
-  $("log-duration").value = "";
+  $("log-date").disabled = false;
+  selectSessionType("Running", true);
+  selectIntensity("Moderate", true);
   $("log-notes").value = "";
+  $("log-ptl").checked = false;
   $("btn-cancel-edit").classList.add("hidden");
   clearMsg("log-error");
   $("log-saved").classList.add("hidden");
+  setOn("#date-chips .qchip", "days", "0");
 }
 
 function calcStreak(datesDesc) {
@@ -207,12 +305,9 @@ async function loadDashboard() {
   logs.forEach((log) => {
     const div = document.createElement("div");
     div.className = "log-item";
-    const acts = (log.activities || []).map((a) => `<li>${a.name}${activitySummary(a)}</li>`).join("");
     div.innerHTML = `
       <div class="log-date">${prettyDate(log.log_date)}</div>
-      <div class="log-meta">${log.duration_minutes} minutes</div>
-      <ul>${acts}</ul>
-      ${log.notes ? `<div class="log-notes">${log.notes.replace(/</g, "&lt;")}</div>` : ""}
+      ${logDetailHTML(log)}
       <div class="log-actions"><button type="button" class="link-btn">Edit</button></div>`;
     div.querySelector(".link-btn").addEventListener("click", () => startEdit(log));
     list.appendChild(div);
@@ -224,11 +319,18 @@ function startEdit(log) {
   $("log-form-title").textContent = "Edit log for " + prettyDate(log.log_date);
   $("log-date").value = log.log_date;
   $("log-date").disabled = true;
-  $("activities").innerHTML = "";
-  (log.activities || []).forEach((a) => addActivityRow(a));
-  if (!$("activities").children.length) addActivityRow();
+  const legacyTitle = (log.activities && log.activities[0] && log.activities[0].name) || "";
+  selectSessionType(log.session_type || "Running", false);
+  selectIntensity(log.intensity || "Moderate", false);
+  $("log-title").value = log.title || legacyTitle;
+  $("log-location").value = log.location || "";
   $("log-duration").value = log.duration_minutes || "";
+  setOn("#duration-chips .qchip", "val", log.duration_minutes || "");
+  $("log-rpe").value = log.rpe || "";
+  $("log-distance").value = log.distance_miles || "";
+  $("log-reps").value = log.reps || "";
   $("log-notes").value = log.notes || "";
+  $("log-ptl").checked = !!log.ptl_verified;
   $("btn-cancel-edit").classList.remove("hidden");
   clearMsg("log-error");
   $("log-saved").classList.add("hidden");
@@ -236,45 +338,58 @@ function startEdit(log) {
 }
 
 function wireLogForm() {
-  $("btn-add-activity").addEventListener("click", () => {
-    if ($("activities").children.length < 12) addActivityRow();
+  buildPickers();
+  document.querySelectorAll("#duration-chips .qchip").forEach((c) => {
+    c.addEventListener("click", () => {
+      $("log-duration").value = c.dataset.val;
+      setOn("#duration-chips .qchip", "val", c.dataset.val);
+    });
   });
-  $("btn-cancel-edit").addEventListener("click", () => {
-    $("log-date").disabled = false;
-    resetLogForm();
+  $("log-duration").addEventListener("input", () =>
+    setOn("#duration-chips .qchip", "val", $("log-duration").value));
+  document.querySelectorAll("#date-chips .qchip").forEach((c) => {
+    c.addEventListener("click", () => {
+      $("log-date").value = addDaysStr(todayStr(), -parseInt(c.dataset.days, 10));
+      setOn("#date-chips .qchip", "days", c.dataset.days);
+    });
   });
+  $("btn-cancel-edit").addEventListener("click", resetLogForm);
   $("form-log").addEventListener("submit", async (e) => {
     e.preventDefault();
     clearMsg("log-error");
     $("log-saved").classList.add("hidden");
     const logDate = editingDate || $("log-date").value;
-    const activities = [];
-    $("activities").querySelectorAll(".activity").forEach((row) => {
-      const name = row.querySelector(".a-name").value.trim();
-      if (!name) return;
-      const sets = parseInt(row.querySelector(".a-sets").value, 10);
-      const reps = parseInt(row.querySelector(".a-reps").value, 10);
-      activities.push({
-        name,
-        sets: Number.isFinite(sets) && sets > 0 ? sets : null,
-        reps: Number.isFinite(reps) && reps > 0 ? reps : null,
-        distance: row.querySelector(".a-distance").value.trim(),
-        time: row.querySelector(".a-time").value.trim(),
-      });
-    });
-    if (!activities.length) return showError("log-error", "Add at least one activity with a name.");
+    if (!logDate) return showError("log-error", "Pick a date.");
     const duration = parseInt($("log-duration").value, 10);
-    if (!Number.isFinite(duration) || duration < 1) return showError("log-error", "Enter the total duration in minutes.");
+    if (!Number.isFinite(duration) || duration < 5)
+      return showError("log-error", "Enter the duration in minutes (at least 5).");
+    const title = $("log-title").value.trim() || selSessionType + " session";
+    const rpeRaw = parseInt($("log-rpe").value, 10);
+    const distRaw = parseFloat($("log-distance").value);
+    const repsRaw = parseInt($("log-reps").value, 10);
     const notes = $("log-notes").value.trim();
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("pt_logs").upsert(
-        { user_id: user.id, log_date: logDate, activities, duration_minutes: duration, notes },
+        {
+          user_id: user.id,
+          log_date: logDate,
+          session_type: selSessionType,
+          intensity: selIntensity,
+          rpe: Number.isFinite(rpeRaw) ? Math.min(10, Math.max(1, rpeRaw)) : null,
+          title,
+          location: $("log-location").value.trim(),
+          distance_miles: Number.isFinite(distRaw) && distRaw > 0 ? distRaw : null,
+          reps: Number.isFinite(repsRaw) && repsRaw > 0 ? repsRaw : null,
+          ptl_verified: $("log-ptl").checked,
+          duration_minutes: duration,
+          notes,
+          activities: [],
+        },
         { onConflict: "user_id,log_date" }
       );
       if (error) throw error;
       $("log-saved").classList.remove("hidden");
-      $("log-date").disabled = false;
       resetLogForm();
       await loadDashboard();
     } catch (err) {
@@ -370,14 +485,11 @@ async function showMemberDetail(m) {
     box.innerHTML = '<p class="muted">No logs yet.</p>';
   } else {
     logs.forEach((log) => {
-      const acts = (log.activities || []).map((a) => `<li>${a.name}${activitySummary(a)}</li>`).join("");
       const div = document.createElement("div");
       div.className = "log-item";
       div.innerHTML = `
         <div class="log-date">${prettyDate(log.log_date)}</div>
-        <div class="log-meta">${log.duration_minutes} minutes</div>
-        <ul>${acts}</ul>
-        ${log.notes ? `<div class="log-notes">${log.notes.replace(/</g, "&lt;")}</div>` : ""}`;
+        ${logDetailHTML(log)}`;
       box.appendChild(div);
     });
   }
@@ -466,7 +578,7 @@ async function loadReports() {
   const [mRes, lRes] = await Promise.all([
     supabase.from("profiles").select("id,name,email").order("name"),
     supabase.from("pt_logs")
-      .select("user_id,log_date,duration_minutes,activities,notes")
+      .select("user_id,log_date,duration_minutes,activities,notes,session_type,intensity,rpe,title,location,distance_miles,reps,ptl_verified")
       .gte("log_date", start).lte("log_date", end)
       .order("log_date", { ascending: false }),
   ]);
@@ -584,6 +696,7 @@ function renderActivityTab() {
       const m = reportMembers.get(log.user_id);
       const hay = (
         (m ? m.name : "") + " " +
+        (log.title || "") + " " + (log.session_type || "") + " " + (log.location || "") + " " +
         (log.activities || []).map((a) => a.name).join(" ") + " " +
         (log.notes || "")
       ).toLowerCase();
@@ -596,14 +709,14 @@ function renderActivityTab() {
   }
   box.innerHTML = logs.map((log) => {
     const m = reportMembers.get(log.user_id);
-    const acts = (log.activities || []).map((a) => a.name + activitySummary(a)).join(", ");
+    const what = logWhat(log) + (log.ptl_verified ? " · PTL verified" : "");
     return `
       <div class="activity-row">
         <div class="row-top">
           <span class="who">${esc(m ? m.name : "Unknown member")}</span>
           <span class="when">${prettyDate(log.log_date)} &bull; ${log.duration_minutes || 0} min</span>
         </div>
-        <div class="what">${esc(acts) || "PT logged"}</div>
+        <div class="what">${esc(what) || "PT logged"}</div>
         ${log.notes ? `<div class="notes">${esc(log.notes)}</div>` : ""}
       </div>`;
   }).join("");
@@ -624,12 +737,12 @@ function exportReportCSV() {
       r.last || "", r.logged ? "Logged" : "Missing",
     ]);
   } else {
-    headers = ["Date", "Name", "Duration (min)", "Activities", "Notes"];
+    headers = ["Date", "Name", "Duration (min)", "Session", "Notes"];
     lines = reportLogs.map((log) => {
       const m = reportMembers.get(log.user_id);
       return [
         log.log_date, m ? m.name : "", log.duration_minutes || 0,
-        (log.activities || []).map((a) => a.name + activitySummary(a)).join("; "),
+        logWhat(log) + (log.ptl_verified ? " [PTL verified]" : ""),
         log.notes || "",
       ];
     });
