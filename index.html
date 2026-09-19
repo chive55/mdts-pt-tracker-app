@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MDTS PT Tracker</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-mark">MDTS</div>
+    <div class="brand-text">
+      <h1>MDTS PT Tracker</h1>
+      <p>USAF &bull; Lackland MDTS</p>
+    </div>
+  </div>
+  <button id="btn-signout" class="btn btn-ghost hidden">Sign out</button>
+</header>
+
+<main class="container">
+  <!-- Auth -->
+  <section id="view-auth" class="view">
+    <div class="card">
+      <h2>Member Sign In</h2>
+      <p class="muted">Log your daily PT and track your progress.</p>
+      <div class="tabs">
+        <button class="tab active" data-tab="signin" type="button">Sign in</button>
+        <button class="tab" data-tab="signup" type="button">Create account</button>
+      </div>
+      <form id="form-signin">
+        <label>Email<input type="email" id="signin-email" required autocomplete="email"></label>
+        <label>Password<input type="password" id="signin-password" required autocomplete="current-password"></label>
+        <button class="btn btn-primary" type="submit">Sign in</button>
+      </form>
+      <form id="form-signup" class="hidden">
+        <label>Full name<input type="text" id="signup-name" required minlength="2" maxlength="80" autocomplete="name" placeholder="e.g. Jane Doe"></label>
+        <label>Email<input type="email" id="signup-email" required autocomplete="email"></label>
+        <label>Password<input type="password" id="signup-password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></label>
+        <button class="btn btn-primary" type="submit">Create account</button>
+      </form>
+      <p id="auth-error" class="error hidden"></p>
+      <p id="auth-note" class="muted hidden"></p>
+    </div>
+  </section>
+
+  <!-- Member dashboard -->
+  <section id="view-dashboard" class="view hidden">
+    <nav class="viewnav">
+      <button class="viewnav-btn active" data-view="dashboard" type="button">My PT</button>
+      <button class="viewnav-btn hidden" id="nav-admin" data-view="admin" type="button">Unit Admin</button>
+    </nav>
+
+    <div class="stats">
+      <div class="stat"><span class="stat-num" id="stat-streak">0</span><span class="stat-label">Day streak</span></div>
+      <div class="stat"><span class="stat-num" id="stat-total">0</span><span class="stat-label">Sessions</span></div>
+      <div class="stat"><span class="stat-num" id="stat-minutes">0</span><span class="stat-label">Minutes</span></div>
+    </div>
+
+    <div class="card">
+      <h2 id="log-form-title">Log PT</h2>
+      <form id="form-log">
+        <label>Date<input type="date" id="log-date" required></label>
+        <div id="activities"></div>
+        <button type="button" class="btn btn-ghost" id="btn-add-activity">+ Add activity</button>
+        <div class="row2">
+          <label>Total duration (minutes)<input type="number" id="log-duration" min="1" max="1440" required inputmode="numeric"></label>
+        </div>
+        <label>Notes<textarea id="log-notes" rows="3" maxlength="1000" placeholder="Optional"></textarea></label>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Save log</button>
+          <button class="btn btn-ghost hidden" id="btn-cancel-edit" type="button">Cancel</button>
+        </div>
+        <p id="log-error" class="error hidden"></p>
+        <p id="log-saved" class="success hidden">Saved.</p>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>History</h2>
+      <div id="history-list" class="history"><p class="muted">No logs yet.</p></div>
+    </div>
+  </section>
+
+  <!-- Admin -->
+  <section id="view-admin" class="view hidden">
+    <nav class="viewnav">
+      <button class="viewnav-btn" data-view="dashboard" type="button">My PT</button>
+      <button class="viewnav-btn active" data-view="admin" type="button">Unit Admin</button>
+    </nav>
+    <div class="card">
+      <h2>Unit Roster</h2>
+      <label class="inline-label">Date <input type="date" id="admin-date"></label>
+      <p class="muted" id="admin-summary"></p>
+      <div id="roster-list" class="roster"></div>
+    </div>
+    <div class="card hidden" id="member-detail-card">
+      <h2 id="member-detail-name"></h2>
+      <div id="member-detail-logs" class="history"></div>
+      <button class="btn btn-ghost" id="btn-back-roster" type="button">Back to roster</button>
+    </div>
+  </section>
+</main>
+
+<footer class="app-footer">
+  <p>MDTS PT Tracker &bull; Daily physical training logging</p>
+</footer>
+
+<script src="config.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
