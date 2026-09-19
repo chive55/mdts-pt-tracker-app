@@ -109,12 +109,12 @@ textarea{resize:vertical}
   background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
   padding:12px 0;
 }
-.viewnav-btn{
+.viewnav-btn,.rtab-btn{
   flex:1;padding:12px;border-radius:10px;cursor:pointer;
   background:var(--card);color:var(--muted);
   border:1px solid var(--line);font-size:15px;font-weight:600;
 }
-.viewnav-btn.active{color:var(--text);border-color:var(--accent);background:var(--card2)}
+.viewnav-btn.active,.rtab-btn.active{color:var(--text);border-color:var(--accent);background:var(--card2)}
 
 .stats{display:flex;gap:10px;margin-bottom:16px}
 .stat{
