@@ -736,7 +736,7 @@ function openModal(id) {
   $("modal-backdrop").classList.remove("hidden");
 }
 function closeModals() {
-  ["member-report-modal", "member-edit-modal", "pfa-modal"].forEach((id) => $(id).classList.add("hidden"));
+  ["member-report-modal", "member-edit-modal", "pfa-modal", "profile-edit-modal"].forEach((id) => $(id).classList.add("hidden"));
   $("modal-backdrop").classList.add("hidden");
 }
 
