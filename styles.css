@@ -1,0 +1,166 @@
+:root{
+  --bg:#0a1120;
+  --bg2:#0d1526;
+  --card:#141e33;
+  --card2:#182641;
+  --line:#26334f;
+  --text:#e9eef7;
+  --muted:#93a1ba;
+  --accent:#3d7bfd;
+  --accent-d:#2f5fd0;
+  --gold:#d9a62e;
+  --good:#34d399;
+  --bad:#f87171;
+  --radius:12px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  min-height:100vh;
+  color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
+}
+.hidden{display:none !important}
+
+.app-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;
+  border-bottom:1px solid var(--line);
+  background:rgba(10,17,32,.85);
+  position:sticky;top:0;z-index:10;
+  backdrop-filter:blur(6px);
+}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{
+  width:46px;height:46px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:13px;letter-spacing:.5px;
+  color:#0a1120;background:linear-gradient(135deg,var(--gold),#f2c94c);
+}
+.brand-text h1{margin:0;font-size:18px;letter-spacing:.3px}
+.brand-text p{margin:2px 0 0;font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+
+.container{max-width:640px;margin:0 auto;padding:16px 16px 32px}
+.view{animation:fade .18s ease-in}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:18px;
+  margin-bottom:16px;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+}
+.card h2{margin:0 0 10px;font-size:17px}
+.muted{color:var(--muted);font-size:14px}
+.error{color:var(--bad);font-size:14px;margin:10px 0 0}
+.success{color:var(--good);font-size:14px;margin:10px 0 0}
+
+label{display:block;font-size:14px;margin:12px 0 4px;color:var(--text)}
+input,textarea,select{
+  width:100%;
+  margin-top:6px;
+  padding:12px;
+  font-size:16px;
+  color:var(--text);
+  background:var(--bg2);
+  border:1px solid var(--line);
+  border-radius:8px;
+}
+input:focus,textarea:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+textarea{resize:vertical}
+.inline-label{display:flex;align-items:center;gap:10px;margin:0}
+.inline-label input{width:auto;margin-top:0}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:48px;
+  padding:12px 20px;
+  font-size:16px;font-weight:600;
+  border-radius:10px;border:1px solid transparent;
+  cursor:pointer;
+  margin-top:14px;
+}
+.btn-primary{background:var(--accent);color:#fff;width:100%}
+.btn-primary:hover{background:var(--accent-d)}
+.btn-ghost{background:transparent;color:var(--text);border-color:var(--line)}
+.btn-ghost:hover{border-color:var(--accent)}
+.btn-danger{background:transparent;color:var(--bad);border-color:var(--line);min-height:40px;padding:8px 14px;font-size:14px;margin-top:0}
+.form-actions{display:flex;gap:10px}
+.form-actions .btn-primary{flex:1}
+
+.tabs{display:flex;gap:8px;margin:14px 0 4px}
+.tab{
+  flex:1;padding:12px;border-radius:8px;cursor:pointer;
+  background:var(--bg2);color:var(--muted);
+  border:1px solid var(--line);font-size:15px;font-weight:600;
+}
+.tab.active{background:var(--card2);color:var(--text);border-color:var(--accent)}
+
+.viewnav{display:flex;gap:8px;margin-bottom:16px}
+.viewnav-btn{
+  flex:1;padding:12px;border-radius:10px;cursor:pointer;
+  background:var(--card);color:var(--muted);
+  border:1px solid var(--line);font-size:15px;font-weight:600;
+}
+.viewnav-btn.active{color:var(--text);border-color:var(--accent);background:var(--card2)}
+
+.stats{display:flex;gap:10px;margin-bottom:16px}
+.stat{
+  flex:1;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--radius);padding:14px 8px;text-align:center;
+}
+.stat-num{display:block;font-size:26px;font-weight:800;color:var(--gold)}
+.stat-label{display:block;font-size:12px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.6px}
+
+.activity{
+  background:var(--bg2);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:12px;
+  margin-top:12px;
+}
+.activity-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.activity-head strong{font-size:14px}
+.activity-remove{
+  background:none;border:none;color:var(--bad);font-size:14px;cursor:pointer;padding:6px;
+}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid2 label{margin:8px 0 4px;font-size:13px;color:var(--muted)}
+
+.history{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.log-item{
+  background:var(--bg2);border:1px solid var(--line);
+  border-radius:10px;padding:12px;
+}
+.log-item .log-date{font-weight:700;font-size:15px}
+.log-item .log-meta{color:var(--muted);font-size:13px;margin-top:2px}
+.log-item ul{margin:8px 0 4px;padding-left:20px;font-size:14px}
+.log-item .log-notes{font-size:14px;color:var(--text);margin-top:6px;font-style:italic}
+.log-item .log-actions{margin-top:8px;display:flex;gap:8px}
+.link-btn{background:none;border:none;color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;padding:6px 0}
+
+.roster{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.roster-row{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg2);border:1px solid var(--line);
+  border-radius:10px;padding:12px;cursor:pointer;
+}
+.roster-row:hover{border-color:var(--accent)}
+.roster-main{flex:1;min-width:0}
+.roster-name{font-weight:700;font-size:15px}
+.roster-sub{color:var(--muted);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{
+  font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+  padding:6px 10px;border-radius:999px;white-space:nowrap;
+}
+.badge.on{background:rgba(52,211,153,.15);color:var(--good);border:1px solid rgba(52,211,153,.4)}
+.badge.off{background:rgba(248,113,113,.12);color:var(--bad);border:1px solid rgba(248,113,113,.35)}
+
+.app-footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 26px}
+@media (min-width:700px){
+  .brand-text h1{font-size:20px}
+}
