@@ -323,3 +323,8 @@ table.report-table{width:100%;border-collapse:collapse;font-size:14px;min-width:
 #btn-remind-missing{width:100%}
 #btn-remind-missing:disabled{opacity:.45;cursor:default}
 #roster-search{margin:10px 0 4px}
+
+.profile-card .profile-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.profile-card h2{margin:0 0 4px}
+.profile-card p{margin:0}
+.profile-card .btn{flex:none}
