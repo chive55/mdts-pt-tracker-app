@@ -94,6 +94,7 @@ async function enterApp(user, fallbackName, extra) {
   }
   $("btn-signout").classList.remove("hidden");
   $("btn-bell").classList.remove("hidden");
+  renderProfileCard();
   if (profile.role === "admin") {
     document.querySelectorAll(".admin-only").forEach((el) => el.classList.remove("hidden"));
     await populateLogForMembers();
@@ -589,6 +590,7 @@ function wireNav() {
   $("modal-backdrop").addEventListener("click", closeModals);
   wireMemberEdit();
   wirePfaModal();
+  wireProfileEdit();
   wireNotifs();
   wireReports();
 }
@@ -645,22 +647,24 @@ function renderRoster(date, loggedBy) {
       <span class="badge ${logged ? "on" : "off"}">${logged ? "Logged" : "Missing"}</span>
       <div class="roster-btns">
         <button type="button" class="btn btn-ghost btn-sm" data-act="report">Report</button>
-        ${m.id !== profile.id ? `<button type="button" class="btn btn-danger" data-act="remove">Remove</button>` : ""}
+        ${m.id !== profile.id ? `<button type="button" class="btn btn-danger" data-act="delete">Delete</button>` : ""}
       </div>`;
     row.querySelector('[data-act="report"]').addEventListener("click", (e) => {
       e.stopPropagation();
       openMemberReport(m.id);
     });
-    const rmBtn = row.querySelector('[data-act="remove"]');
+    const rmBtn = row.querySelector('[data-act="delete"]');
     if (rmBtn) {
       rmBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
-        if (!confirm(`Remove ${m.name}? This deletes their profile and all of their PT logs.`)) return;
-        const { error } = await supabase.from("profiles").delete().eq("id", m.id);
-        if (error) alert("Could not remove: " + error.message);
+        if (!confirm(`Delete ${m.name}? This permanently removes their account, profile, PT logs, and PFA tests. They will no longer be able to sign in.`)) return;
+        const { error } = await supabase.rpc("admin_delete_member", { target_id: m.id });
+        if (error) alert("Could not delete: " + error.message);
         else {
-          alert(`${m.name} was removed. To fully block sign in, also delete them under Authentication > Users in Supabase.`);
+          alert(`${m.name} was deleted.`);
           loadRoster();
+          if (reportMemberId === m.id) { closeModals(); reportMemberId = null; }
+          if (reportPreset) loadReports();
         }
       });
     }
@@ -782,22 +786,64 @@ function wireMemberEdit() {
     clearMsg("member-edit-error");
     const name = $("m-name").value.trim();
     if (name.length < 2) return showError("member-edit-error", "Enter the member's full name.");
-    if (editingMemberId === profile.id && $("m-role").value !== "admin") {
-      return showError("member-edit-error", "You cannot remove your own admin role.");
-    }
-    const { error } = await supabase.from("profiles").update({
-      rank: $("m-rank").value,
-      role: $("m-role").value,
-      name,
-      flight: $("m-flight").value.trim(),
-      pfa_due_date: $("m-pfa-due").value || null,
-    }).eq("id", editingMemberId);
+    const { error } = await supabase.rpc("admin_update_member", {
+      target_id: editingMemberId,
+      p_name: name,
+      p_rank: $("m-rank").value,
+      p_flight: $("m-flight").value.trim(),
+      p_pfa_due_date: $("m-pfa-due").value || null,
+      p_role: $("m-role").value,
+    });
     if (error) return showError("member-edit-error", "Could not save: " + error.message);
     closeModals();
     loadRoster();
     if (reportMemberId) openMemberReport(reportMemberId);
   });
   $("btn-member-edit-cancel").addEventListener("click", closeModals);
+}
+
+/* ----- Edit own profile ----- */
+
+function renderProfileCard() {
+  if (!profile) return;
+  const bits = [];
+  if (profile.flight) bits.push(profile.flight + " Flight");
+  if (profile.email) bits.push(profile.email);
+  bits.push(profile.role === "admin" ? "Admin" : "Member");
+  $("profile-name").textContent = memberLabel(profile);
+  $("profile-detail").textContent = bits.join(" • ");
+}
+
+function openProfileEdit() {
+  closeModals();
+  fillRankSelect($("p-rank"), profile.rank || "");
+  $("p-flight").value = profile.flight || "";
+  $("p-name").value = profile.name || "";
+  $("p-email").textContent = profile.email || "";
+  clearMsg("profile-edit-error");
+  openModal("profile-edit-modal");
+}
+
+function wireProfileEdit() {
+  $("btn-edit-profile").addEventListener("click", openProfileEdit);
+  $("form-profile-edit").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearMsg("profile-edit-error");
+    const name = $("p-name").value.trim();
+    if (name.length < 2) return showError("profile-edit-error", "Enter your full name.");
+    const { error } = await supabase.rpc("update_own_profile", {
+      p_name: name,
+      p_rank: $("p-rank").value,
+      p_flight: $("p-flight").value.trim(),
+    });
+    if (error) return showError("profile-edit-error", "Could not save: " + error.message);
+    const { data, error: rErr } = await supabase.from("profiles").select("*").eq("id", profile.id).single();
+    if (rErr) return showError("profile-edit-error", "Saved, but could not reload your profile: " + rErr.message);
+    profile = data;
+    renderProfileCard();
+    closeModals();
+  });
+  $("btn-profile-edit-cancel").addEventListener("click", closeModals);
 }
 
 /* ----- Record PFA test modal ----- */
