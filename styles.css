@@ -12,6 +12,7 @@
   --good:#34d399;
   --bad:#f87171;
   --radius:12px;
+  --header-h:75px;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -27,11 +28,13 @@ body{
 .app-header{
   display:flex;align-items:center;justify-content:space-between;
   padding:14px 16px;
+  height:var(--header-h);
   border-bottom:1px solid var(--line);
   background:rgba(10,17,32,.85);
   position:sticky;top:0;z-index:10;
   backdrop-filter:blur(6px);
 }
+.app-header .btn{margin-top:0;min-height:40px;padding:8px 16px;font-size:14px}
 .brand{display:flex;align-items:center;gap:12px}
 .brand-mark{
   width:46px;height:46px;border-radius:10px;
@@ -100,7 +103,12 @@ textarea{resize:vertical}
 }
 .tab.active{background:var(--card2);color:var(--text);border-color:var(--accent)}
 
-.viewnav{display:flex;gap:8px;margin-bottom:16px}
+.viewnav{
+  display:flex;gap:8px;margin:0 0 16px;
+  position:sticky;top:var(--header-h);z-index:5;
+  background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
+  padding:12px 0;
+}
 .viewnav-btn{
   flex:1;padding:12px;border-radius:10px;cursor:pointer;
   background:var(--card);color:var(--muted);
