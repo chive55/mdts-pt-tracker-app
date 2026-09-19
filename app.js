@@ -151,6 +151,7 @@ async function enterApp(user, fallbackName, extra) {
   }
   show("view-dashboard");
   await loadDashboard();
+  try { await supabase.rpc("check_pfa_due"); } catch (e) { /* migration 3 may not be applied yet */ }
   await loadNotifications();
 }
 
@@ -409,6 +410,8 @@ async function loadDashboard() {
   $("target-fill").style.width = Math.min(100, Math.round((weekCount / target) * 100)) + "%";
 
   await loadPfaSummary();
+  dashLogsCache = logs || [];
+  await renderProgressChart(logs);
 
   const list = $("history-list");
   list.innerHTML = "";
@@ -952,6 +955,210 @@ function wirePfaModal() {
   $("btn-pfa-cancel").addEventListener("click", closeModals);
 }
 
+/* ---------- Charts ---------- */
+
+const CHART = {
+  bar: "#d9a62e",
+  barDim: "rgba(217,166,46,.22)",
+  line: "#3d7bfd",
+  grid: "rgba(147,161,186,.18)",
+  text: "#93a1ba",
+  bright: "#e9eef7",
+  good: "#34d399",
+  bad: "#f87171",
+};
+
+function fitCanvas(canvas, height) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || (canvas.parentElement && canvas.parentElement.clientWidth) || 0;
+  if (w < 10) return null;
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(height * dpr);
+  canvas.style.height = height + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, height);
+  return { ctx, w, h: height };
+}
+
+function chartRoundRect(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function drawBarChart(canvas, labels, values, height) {
+  const fit = fitCanvas(canvas, height || 180);
+  if (!fit) return;
+  const { ctx, w, h } = fit;
+  const padT = 16, padB = 26, padX = 8;
+  const cw = w - padX * 2, ch = h - padT - padB;
+  const max = Math.max(1, ...values);
+  const n = values.length;
+  const slot = cw / Math.max(1, n);
+  const barW = Math.min(36, slot * 0.55);
+  ctx.font = "11px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  values.forEach((v, i) => {
+    const x = padX + slot * i + slot / 2;
+    const bh = Math.max(v > 0 ? 3 : 1, (v / max) * ch);
+    const y = padT + ch - bh;
+    ctx.fillStyle = v > 0 ? CHART.bar : CHART.barDim;
+    chartRoundRect(ctx, x - barW / 2, y, barW, bh, 4);
+    ctx.fill();
+    if (v > 0) {
+      ctx.fillStyle = CHART.bright;
+      ctx.fillText(String(v), x, y - 5);
+    }
+    ctx.fillStyle = CHART.text;
+    ctx.fillText(labels[i], x, padT + ch + 17);
+  });
+}
+
+function drawLineChart(canvas, labels, values, height) {
+  const fit = fitCanvas(canvas, height || 180);
+  if (!fit) return;
+  const { ctx, w, h } = fit;
+  const padL = 32, padR = 10, padT = 14, padB = 26;
+  const cw = w - padL - padR, ch = h - padT - padB;
+  const min = 0, max = 100;
+  const yOf = (v) => padT + ch - ((v - min) / (max - min)) * ch;
+  const xOf = (i) => padL + (values.length === 1 ? cw / 2 : (i / (values.length - 1)) * cw);
+  ctx.font = "11px system-ui, sans-serif";
+  [0, 25, 50, 75, 100].forEach((g) => {
+    ctx.strokeStyle = CHART.grid;
+    ctx.beginPath();
+    ctx.moveTo(padL, yOf(g));
+    ctx.lineTo(w - padR, yOf(g));
+    ctx.stroke();
+    ctx.fillStyle = CHART.text;
+    ctx.textAlign = "right";
+    ctx.fillText(String(g), padL - 6, yOf(g) + 4);
+  });
+  ctx.strokeStyle = CHART.line;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  values.forEach((v, i) => {
+    if (i === 0) ctx.moveTo(xOf(i), yOf(v));
+    else ctx.lineTo(xOf(i), yOf(v));
+  });
+  ctx.stroke();
+  ctx.fillStyle = CHART.line;
+  values.forEach((v, i) => {
+    ctx.beginPath();
+    ctx.arc(xOf(i), yOf(v), 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = CHART.bright;
+    ctx.textAlign = "center";
+    ctx.fillText(String(v), xOf(i), yOf(v) - 9);
+    ctx.fillStyle = CHART.line;
+  });
+  ctx.fillStyle = CHART.text;
+  ctx.textAlign = "center";
+  labels.forEach((l, i) => ctx.fillText(l, xOf(i), padT + ch + 17));
+  ctx.lineWidth = 1;
+}
+
+function drawFlightChart(canvas, rows) {
+  const rowH = 46;
+  const fit = fitCanvas(canvas, rows.length * rowH + 8);
+  if (!fit) return;
+  const { ctx, w } = fit;
+  const labelW = 92, padR = 64, padT = 4;
+  const bw = w - labelW - padR;
+  ctx.font = "12px system-ui, sans-serif";
+  rows.forEach((r, i) => {
+    const y = padT + i * rowH;
+    const pctv = r.total ? r.submitted / r.total : 0;
+    ctx.fillStyle = CHART.bright;
+    ctx.textAlign = "left";
+    const name = r.name.length > 12 ? r.name.slice(0, 11) + "…" : r.name;
+    ctx.fillText(name, 0, y + 18);
+    ctx.fillStyle = CHART.text;
+    ctx.font = "11px system-ui, sans-serif";
+    ctx.fillText(`${r.submitted}/${r.total}`, 0, y + 34);
+    ctx.font = "12px system-ui, sans-serif";
+    const bx = labelW;
+    ctx.fillStyle = "rgba(147,161,186,.15)";
+    chartRoundRect(ctx, bx, y + 8, bw, 18, 9);
+    ctx.fill();
+    ctx.fillStyle = pctv >= 0.8 ? CHART.good : pctv >= 0.5 ? CHART.bar : CHART.bad;
+    chartRoundRect(ctx, bx, y + 8, Math.max(18, bw * pctv), 18, 9);
+    ctx.fill();
+    ctx.fillStyle = CHART.bright;
+    ctx.textAlign = "left";
+    ctx.fillText(Math.round(pctv * 100) + "%", bx + bw + 10, y + 22);
+  });
+}
+
+/* ---------- Progress (My PT) ---------- */
+
+let dashLogsCache = [];
+
+function weekBuckets(logs, weeks) {
+  const buckets = [];
+  const today = new Date(todayStr() + "T12:00:00");
+  const dow = (today.getDay() + 6) % 7;
+  const thisMonday = new Date(today);
+  thisMonday.setDate(today.getDate() - dow);
+  for (let i = weeks - 1; i >= 0; i--) {
+    const start = new Date(thisMonday);
+    start.setDate(thisMonday.getDate() - 7 * i);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    buckets.push({ start, end, minutes: 0 });
+  }
+  (logs || []).forEach((l) => {
+    const d = new Date(l.log_date + "T12:00:00");
+    const b = buckets.find((bk) => d >= bk.start && d <= bk.end);
+    if (b) b.minutes += l.duration_minutes || 0;
+  });
+  return buckets;
+}
+
+async function renderProgressChart(logs) {
+  const buckets = weekBuckets(logs, 8);
+  drawBarChart(
+    $("chart-weekly"),
+    buckets.map((b) => `${b.start.getMonth() + 1}/${b.start.getDate()}`),
+    buckets.map((b) => b.minutes)
+  );
+  const wrap = $("chart-pfa-wrap");
+  const { data: tests } = await supabase.from("pfa_tests")
+    .select("test_date,score").eq("user_id", profile.id)
+    .order("test_date", { ascending: true }).limit(12);
+  if (!tests || !tests.length) {
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+  drawLineChart(
+    $("chart-pfa"),
+    tests.map((t) => String(t.test_date).slice(5).replace("-", "/")),
+    tests.map((t) => Number(t.score))
+  );
+}
+
+let chartResizeTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(chartResizeTimer);
+  chartResizeTimer = setTimeout(() => {
+    if (!$("view-dashboard").classList.contains("hidden") && profile) {
+      renderProgressChart(dashLogsCache);
+    }
+    if (!$("view-reports").classList.contains("hidden") && flightChartData.length) {
+      const c = $("chart-flights");
+      if (c) drawFlightChart(c, flightChartData);
+    }
+  }, 250);
+});
+
 /* ---------- Reports ---------- */
 
 let reportPreset = "today";
@@ -1007,6 +1214,8 @@ function wireReports() {
       reportTab = btn.dataset.rtab;
       $("report-roster-wrap").classList.toggle("hidden", reportTab !== "roster");
       $("report-activity-wrap").classList.toggle("hidden", reportTab !== "activity");
+      $("report-flights-wrap").classList.toggle("hidden", reportTab !== "flights");
+      $("report-pfa-wrap").classList.toggle("hidden", reportTab !== "pfa");
       renderReport();
     });
   });
@@ -1129,6 +1338,8 @@ function renderReport() {
   btn.disabled = missingNoRemind === 0;
   renderRosterTab();
   renderActivityTab();
+  renderFlightsTab();
+  renderPfaWatch();
 }
 
 function filteredReportRows() {
@@ -1246,8 +1457,132 @@ function renderActivityTab() {
   }).join("");
 }
 
-function csvCell(v) {
-  const s = String(v ?? "");
+/* ----- Flight Status tab ----- */
+
+let flightChartData = [];
+
+function renderFlightsTab() {
+  const box = $("report-flights-wrap");
+  if (!reportFlights.length) {
+    box.innerHTML = '<p class="muted">No flights assigned.</p>';
+    flightChartData = [];
+    return;
+  }
+  const rows = reportFlights.map((f) => {
+    const fr = reportRows.filter((r) => (r.member.flight || "").trim() === f);
+    return { name: f, total: fr.length, submitted: fr.filter((r) => r.logged).length };
+  });
+  flightChartData = rows;
+  box.innerHTML = `
+    <div class="card">
+      <h2>Flight Status</h2>
+      <p class="muted">Submission rate per flight for ${prettyDate(reportRange.start)} to ${prettyDate(reportRange.end)}.</p>
+      <div class="chart-wrap"><canvas id="chart-flights"></canvas></div>
+      ${rows.map((r) => {
+        const pctv = r.total ? Math.round((r.submitted / r.total) * 100) : 0;
+        return `<div class="flight-row">
+          <div><strong>${esc(r.name)}</strong><div class="sub">${r.submitted} of ${r.total} submitted</div></div>
+          <div class="flight-pct">${pctv}%</div>
+        </div>`;
+      }).join("")}
+    </div>`;
+  drawFlightChart($("chart-flights"), rows);
+}
+
+/* ----- PFA Watch tab ----- */
+
+function pfaDaysLeft(m) {
+  if (!m.pfa_due_date) return null;
+  return Math.round((new Date(m.pfa_due_date + "T12:00:00") - new Date(todayStr() + "T12:00:00")) / 86400000);
+}
+
+function pfaDuePhrase(m) {
+  const days = pfaDaysLeft(m);
+  if (days === null) return "no due date set";
+  if (days < 0) return `was due ${-days} day${-days === 1 ? "" : "s"} ago (${m.pfa_due_date})`;
+  if (days === 0) return `is due today (${m.pfa_due_date})`;
+  return `is due in ${days} day${days === 1 ? "" : "s"} (${m.pfa_due_date})`;
+}
+
+async function sendPfaReminder(m, silent) {
+  if (!silent && !confirm(`Send a PFA due reminder to ${memberLabel(m)}?`)) return false;
+  const { error } = await supabase.from("notifications").insert({
+    user_id: m.id,
+    kind: "reminder",
+    title: "PFA Due Soon",
+    body: `Your official PFA ${pfaDuePhrase(m)}. Contact your PTL to schedule your test.`,
+  });
+  if (error) {
+    if (!silent) alert("Could not send reminder: " + error.message);
+    return false;
+  }
+  remindedIds.add(m.id);
+  if (!silent) {
+    alert("Reminder sent.");
+    renderReport();
+  }
+  return true;
+}
+
+function renderPfaWatch() {
+  const box = $("report-pfa-wrap");
+  const rows = reportRows
+    .map((r) => ({ m: r.member, days: pfaDaysLeft(r.member) }))
+    .filter((r) => r.days !== null && r.days <= 30)
+    .sort((a, b) => a.days - b.days);
+  if (!rows.length) {
+    box.innerHTML = '<div class="card"><h2>PFA Watch</h2><p class="muted">No PFAs due within 30 days. Everyone is current.</p></div>';
+    return;
+  }
+  box.innerHTML = `
+    <div class="card">
+      <div class="profile-row">
+        <div>
+          <h2>PFA Watch</h2>
+          <p class="muted">${rows.length} member${rows.length === 1 ? "" : "s"} due within 30 days or overdue.</p>
+        </div>
+        <button class="btn btn-primary pfa-remind-all" id="btn-pfa-remind-all" type="button">Remind All</button>
+      </div>
+      <div class="table-scroll"><table class="report-table">
+        <thead><tr><th>Member</th><th>Flight</th><th>Due</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${rows.map((r) => {
+            const reminded = remindedIds.has(r.m.id);
+            const dueLabel = r.days < 0 ? `${-r.days}d overdue` : r.days === 0 ? "due today" : `${r.days}d left`;
+            return `<tr>
+              <td><strong>${esc(memberLabel(r.m))}</strong></td>
+              <td>${esc(r.m.flight || "—")}</td>
+              <td>${esc(r.m.pfa_due_date)} <span class="sub">(${dueLabel})</span></td>
+              <td>${pfaPill(r.m)}</td>
+              <td>${reminded ? '<span class="sub">Reminded</span>' : `<button type="button" class="link-btn" data-pfaremind="${r.m.id}">Remind</button>`}</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table></div>
+    </div>`;
+  box.querySelectorAll("[data-pfaremind]").forEach((b) => {
+    b.addEventListener("click", () => {
+      const m = reportMembers.get(b.dataset.pfaremind);
+      if (m) sendPfaReminder(m, false);
+    });
+  });
+  $("btn-pfa-remind-all").addEventListener("click", async () => {
+    const targets = rows.filter((r) => !remindedIds.has(r.m.id));
+    if (!targets.length) {
+      alert("Everyone due has already been reminded this week.");
+      return;
+    }
+    if (!confirm(`Send PFA due reminders to ${targets.length} member${targets.length === 1 ? "" : "s"}?`)) return;
+    let sent = 0;
+    for (const r of targets) {
+      if (await sendPfaReminder(r.m, true)) sent++;
+    }
+    alert(`Sent ${sent} reminder${sent === 1 ? "" : "s"}.`);
+    renderReport();
+  });
+}
+
+function csvCell(v) {  const s = String(v ?? "");
   return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
