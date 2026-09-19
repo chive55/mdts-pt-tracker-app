@@ -51,16 +51,65 @@ function activitySummary(a) {
 
 /* ---------- Auth ---------- */
 
+const PWRESET_FLAG = "mdts_pwreset";
+
+function setAuthPane(pane) {
+  const tabs = document.querySelector("#view-auth .tabs");
+  if (tabs) tabs.classList.toggle("hidden", pane === "reset-request" || pane === "reset-confirm");
+  $("form-signin").classList.toggle("hidden", pane !== "signin");
+  $("form-signup").classList.toggle("hidden", pane !== "signup");
+  $("form-reset-request").classList.toggle("hidden", pane !== "reset-request");
+  $("form-reset-confirm").classList.toggle("hidden", pane !== "reset-confirm");
+  if (pane === "signin" || pane === "signup") {
+    document.querySelectorAll("#view-auth .tab").forEach((t) =>
+      t.classList.toggle("active", t.dataset.tab === pane));
+  }
+  clearMsg("auth-error");
+}
+
 function wireAuthTabs() {
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
-      tab.classList.add("active");
-      const isSignup = tab.dataset.tab === "signup";
-      $("form-signin").classList.toggle("hidden", isSignup);
-      $("form-signup").classList.toggle("hidden", !isSignup);
-      clearMsg("auth-error");
+      setAuthPane(tab.dataset.tab === "signup" ? "signup" : "signin");
     });
+  });
+}
+
+function wirePasswordReset() {
+  $("btn-forgot").addEventListener("click", () => {
+    setAuthPane("reset-request");
+    $("reset-email").value = $("signin-email").value;
+  });
+  $("btn-reset-back").addEventListener("click", () => setAuthPane("signin"));
+  $("form-reset-request").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearMsg("auth-error");
+    const email = $("reset-email").value.trim();
+    if (!email) return showError("auth-error", "Enter your account email.");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: location.origin + location.pathname,
+    });
+    if (error) return showError("auth-error", "Could not send reset email: " + error.message);
+    try { sessionStorage.setItem(PWRESET_FLAG, "1"); } catch (err) { /* storage unavailable */ }
+    const note = $("auth-note");
+    note.textContent = "Reset link sent. Check your inbox (and spam folder), then open the link on this device to choose a new password.";
+    note.classList.remove("hidden");
+    setAuthPane("signin");
+  });
+  $("form-reset-confirm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearMsg("reset-confirm-error");
+    const p1 = $("reset-new-password").value;
+    const p2 = $("reset-new-password2").value;
+    if (p1.length < 8) return showError("reset-confirm-error", "Password must be at least 8 characters.");
+    if (p1 !== p2) return showError("reset-confirm-error", "Passwords do not match.");
+    const { error } = await supabase.auth.updateUser({ password: p1 });
+    if (error) return showError("reset-confirm-error", "Could not set password: " + error.message);
+    try { sessionStorage.removeItem(PWRESET_FLAG); } catch (err) { /* storage unavailable */ }
+    history.replaceState(null, "", location.pathname);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { location.reload(); return; }
+    await enterApp(user);
   });
 }
 
@@ -819,6 +868,7 @@ function openProfileEdit() {
   fillRankSelect($("p-rank"), profile.rank || "");
   $("p-flight").value = profile.flight || "";
   $("p-name").value = profile.name || "";
+  $("p-new-password").value = "";
   $("p-email").textContent = profile.email || "";
   clearMsg("profile-edit-error");
   openModal("profile-edit-modal");
@@ -837,6 +887,12 @@ function wireProfileEdit() {
       p_flight: $("p-flight").value.trim(),
     });
     if (error) return showError("profile-edit-error", "Could not save: " + error.message);
+    const newPw = $("p-new-password").value;
+    if (newPw) {
+      if (newPw.length < 8) return showError("profile-edit-error", "New password must be at least 8 characters.");
+      const { error: pwErr } = await supabase.auth.updateUser({ password: newPw });
+      if (pwErr) return showError("profile-edit-error", "Profile saved, but the password did not change: " + pwErr.message);
+    }
     const { data, error: rErr } = await supabase.from("profiles").select("*").eq("id", profile.id).single();
     if (rErr) return showError("profile-edit-error", "Saved, but could not reload your profile: " + rErr.message);
     profile = data;
@@ -1233,12 +1289,21 @@ async function init() {
   }
   wireAuthTabs();
   wireAuthForms();
+  wirePasswordReset();
   wireLogForm();
   wireNav();
   resetLogForm();
   $("admin-date").value = todayStr();
   const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
+  if (new URLSearchParams(location.search).has("code")) {
+    history.replaceState(null, "", location.pathname);
+  }
+  let inRecovery = false;
+  try { inRecovery = !!session && sessionStorage.getItem(PWRESET_FLAG) === "1"; } catch (err) { /* storage unavailable */ }
+  if (inRecovery) {
+    setAuthPane("reset-confirm");
+    show("view-auth");
+  } else if (session) {
     await enterApp(session.user);
   } else {
     show("view-auth");
