@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>MDTS PT Tracker</title>
-<link rel="stylesheet" href="styles.css?v=4">
+<link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
 <header class="app-header">
@@ -62,12 +62,44 @@
       <h2 id="log-form-title">Log PT</h2>
       <form id="form-log">
         <label>Date<input type="date" id="log-date" required></label>
-        <div id="activities"></div>
-        <button type="button" class="btn btn-ghost" id="btn-add-activity">+ Add activity</button>
-        <div class="row2">
-          <label>Total duration (minutes)<input type="number" id="log-duration" min="1" max="1440" required inputmode="numeric"></label>
+        <div class="qchip-row" id="date-chips">
+          <button type="button" class="qchip" data-days="0">Today</button>
+          <button type="button" class="qchip" data-days="1">Yesterday</button>
+          <button type="button" class="qchip" data-days="2">2 days ago</button>
         </div>
+
+        <div class="field-label">Session type</div>
+        <div class="picker-grid" id="session-picker"></div>
+
+        <div class="field-label">Intensity</div>
+        <div class="intensity-grid" id="intensity-picker"></div>
+
+        <div class="grid2">
+          <div>
+            <label>Duration (minutes)<input type="number" id="log-duration" min="5" max="360" required inputmode="numeric"></label>
+            <div class="qchip-row" id="duration-chips">
+              <button type="button" class="qchip" data-val="15">15</button>
+              <button type="button" class="qchip" data-val="30">30</button>
+              <button type="button" class="qchip" data-val="45">45</button>
+              <button type="button" class="qchip" data-val="60">60</button>
+              <button type="button" class="qchip" data-val="90">90</button>
+            </div>
+          </div>
+          <label>RPE (1-10)<input type="number" id="log-rpe" min="1" max="10" inputmode="numeric" placeholder="6"></label>
+        </div>
+
+        <label>Workout title<input type="text" id="log-title" maxlength="120" placeholder="e.g. Morning run"></label>
+        <label>Location<input type="text" id="log-location" maxlength="120" placeholder="e.g. Base track"></label>
+
+        <div class="grid2">
+          <label>Distance (miles)<input type="number" id="log-distance" min="0" step="0.1" inputmode="decimal" placeholder="0.0"></label>
+          <label>Reps<input type="number" id="log-reps" min="0" inputmode="numeric" placeholder="0"></label>
+        </div>
+
         <label>Notes<textarea id="log-notes" rows="3" maxlength="1000" placeholder="Optional"></textarea></label>
+
+        <label class="check-row"><input type="checkbox" id="log-ptl"><span><strong>Verified by PTL / Leader</strong><span class="muted">Witnessed or verified in person by a PTL or unit leader.</span></span></label>
+
         <div class="form-actions">
           <button class="btn btn-primary" type="submit">Save log</button>
           <button class="btn btn-ghost hidden" id="btn-cancel-edit" type="button">Cancel</button>
@@ -135,7 +167,7 @@
         <button class="rtab-btn" data-rtab="activity" type="button">Activity Logs</button>
       </div>
       <div class="report-toolbar">
-        <input type="search" id="report-search" placeholder="Search name or activity" autocomplete="off">
+        <input type="search" id="report-search" placeholder="Search name or session" autocomplete="off">
         <div class="report-actions">
           <button class="btn btn-ghost" id="btn-print-report" type="button">Print</button>
           <button class="btn btn-ghost" id="btn-export-csv" type="button">Download CSV</button>
@@ -151,7 +183,7 @@
   <p>MDTS PT Tracker &bull; Daily physical training logging</p>
 </footer>
 
-<script src="config.js?v=4"></script>
-<script type="module" src="app.js?v=4"></script>
+<script src="config.js?v=5"></script>
+<script type="module" src="app.js?v=5"></script>
 </body>
 </html>
