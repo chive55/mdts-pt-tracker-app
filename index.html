@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>MDTS PT Tracker</title>
-<link rel="stylesheet" href="styles.css?v=10">
+<link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
 <header class="app-header">
@@ -178,6 +178,18 @@
       <h2>Official PFA</h2>
       <div id="pfa-summary"><p class="muted">No official PFA recorded yet.</p></div>
     </div>
+
+    <div class="card">
+      <h2>Progress</h2>
+      <div class="chart-wrap">
+        <div class="chart-title">Minutes per week (last 8 weeks)</div>
+        <canvas id="chart-weekly" height="180"></canvas>
+      </div>
+      <div class="chart-wrap" id="chart-pfa-wrap">
+        <div class="chart-title">PFA score history</div>
+        <canvas id="chart-pfa" height="180"></canvas>
+      </div>
+    </div>
   </section>
 
   <!-- Profile -->
@@ -322,6 +334,8 @@
       <div class="report-tabs">
         <button class="rtab-btn active" data-rtab="roster" type="button">Roster Summary</button>
         <button class="rtab-btn" data-rtab="activity" type="button">Activity Logs</button>
+        <button class="rtab-btn" data-rtab="flights" type="button">Flight Status</button>
+        <button class="rtab-btn" data-rtab="pfa" type="button">PFA Watch</button>
       </div>
       <div class="report-toolbar">
         <input type="search" id="report-search" placeholder="Search name or session" autocomplete="off">
@@ -332,6 +346,8 @@
       </div>
       <div id="report-roster-wrap"></div>
       <div id="report-activity-wrap" class="hidden"></div>
+      <div id="report-flights-wrap" class="hidden"></div>
+      <div id="report-pfa-wrap" class="hidden"></div>
     </div>
   </section>
 </main>
@@ -340,7 +356,7 @@
   <p>MDTS PT Tracker &bull; Daily physical training logging</p>
 </footer>
 
-<script src="config.js?v=10"></script>
-<script type="module" src="app.js?v=10"></script>
+<script src="config.js?v=11"></script>
+<script type="module" src="app.js?v=11"></script>
 </body>
 </html>
