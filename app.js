@@ -186,7 +186,7 @@ function calcStreak(datesDesc) {
 
 async function loadDashboard() {
   const { data: logs, error } = await supabase
-    .from("pt_logs").select("*").order("log_date", { ascending: false });
+    .from("pt_logs").select("*").eq("user_id", profile.id).order("log_date", { ascending: false });
   if (error) {
     showError("log-error", "Could not load your logs: " + error.message);
     return;
