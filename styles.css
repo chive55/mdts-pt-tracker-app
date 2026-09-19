@@ -139,6 +139,33 @@ textarea{resize:vertical}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .grid2 label{margin:8px 0 4px;font-size:13px;color:var(--muted)}
 
+/* Workout log: session type + intensity pickers */
+.field-label{display:block;font-size:14px;font-weight:700;margin:14px 0 2px;color:var(--text)}
+.picker-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+@media(min-width:480px){.picker-grid{grid-template-columns:repeat(3,1fr)}}
+.pick-btn{padding:12px 8px;border-radius:10px;cursor:pointer;background:var(--bg2);color:var(--muted);border:1px solid var(--line);font-size:14px;font-weight:600}
+.pick-btn.selected{background:var(--accent);border-color:var(--accent);color:#fff}
+.intensity-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+@media(min-width:480px){.intensity-grid{grid-template-columns:repeat(4,1fr)}}
+.intensity-card{padding:10px;border-radius:10px;cursor:pointer;background:var(--bg2);border:1px solid var(--line);text-align:left;color:var(--text)}
+.intensity-card .lv{font-weight:700;font-size:14px}
+.intensity-card .hint{font-size:11px;color:var(--muted);margin-top:2px}
+.intensity-card.sel-low{border-color:#3d7bfd;background:rgba(61,123,253,.14)}
+.intensity-card.sel-mod{border-color:var(--good);background:rgba(52,211,153,.12)}
+.intensity-card.sel-high{border-color:var(--gold);background:rgba(217,166,46,.12)}
+.intensity-card.sel-max{border-color:var(--bad);background:rgba(248,113,113,.12)}
+.qchip-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.qchip{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer}
+.qchip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.check-row{display:flex;gap:10px;align-items:flex-start;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:12px;margin:14px 0 4px;cursor:pointer;font-size:14px}
+.check-row input{width:auto;margin:2px 0 0;accent-color:var(--accent);flex:none}
+.check-row .muted{display:block;font-size:12px;margin-top:2px}
+.log-title{font-weight:700;font-size:14px;margin-top:6px}
+.log-sub{color:var(--muted);font-size:13px;margin-top:2px}
+.log-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.tag.ptl{color:var(--good);border-color:rgba(52,211,153,.45)}
+
 .history{display:flex;flex-direction:column;gap:10px;margin-top:8px}
 .log-item{
   background:var(--bg2);border:1px solid var(--line);
