@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>MDTS PT Tracker</title>
-<link rel="stylesheet" href="styles.css?v=8">
+<link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
 <header class="app-header">
@@ -89,6 +89,7 @@
   <section id="view-dashboard" class="view hidden">
     <nav class="viewnav">
       <button class="viewnav-btn active" data-view="dashboard" type="button">My PT</button>
+      <button class="viewnav-btn" data-view="profile" type="button">Profile</button>
       <button class="viewnav-btn hidden admin-only" data-view="admin" type="button">Unit Admin</button>
       <button class="viewnav-btn hidden admin-only" data-view="reports" type="button">Reports</button>
     </nav>
@@ -107,10 +108,10 @@
     <div class="card profile-card">
       <div class="profile-row">
         <div>
-          <h2 id="profile-name">My Profile</h2>
-          <p class="muted" id="profile-detail"></p>
+          <h2>Profile</h2>
+          <p class="muted">View or update your info in the Profile tab.</p>
         </div>
-        <button class="btn btn-ghost" id="btn-edit-profile" type="button">Edit Profile</button>
+        <button class="btn btn-ghost" id="btn-goto-profile" type="button">Go to Profile</button>
       </div>
     </div>
 
@@ -179,10 +180,31 @@
     </div>
   </section>
 
+  <!-- Profile -->
+  <section id="view-profile" class="view hidden">
+    <nav class="viewnav">
+      <button class="viewnav-btn" data-view="dashboard" type="button">My PT</button>
+      <button class="viewnav-btn active" data-view="profile" type="button">Profile</button>
+      <button class="viewnav-btn hidden admin-only" data-view="admin" type="button">Unit Admin</button>
+      <button class="viewnav-btn hidden admin-only" data-view="reports" type="button">Reports</button>
+    </nav>
+
+    <div class="card profile-card">
+      <div class="profile-row">
+        <div>
+          <h2 id="profile-name">My Profile</h2>
+          <p class="muted" id="profile-detail"></p>
+        </div>
+        <button class="btn btn-ghost" id="btn-edit-profile" type="button">Edit Profile</button>
+      </div>
+    </div>
+  </section>
+
   <!-- Admin -->
   <section id="view-admin" class="view hidden">
     <nav class="viewnav">
       <button class="viewnav-btn" data-view="dashboard" type="button">My PT</button>
+      <button class="viewnav-btn" data-view="profile" type="button">Profile</button>
       <button class="viewnav-btn active" data-view="admin" type="button">Unit Admin</button>
       <button class="viewnav-btn" data-view="reports" type="button">Reports</button>
     </nav>
@@ -271,6 +293,7 @@
   <section id="view-reports" class="view hidden">
     <nav class="viewnav">
       <button class="viewnav-btn" data-view="dashboard" type="button">My PT</button>
+      <button class="viewnav-btn" data-view="profile" type="button">Profile</button>
       <button class="viewnav-btn" data-view="admin" type="button">Unit Admin</button>
       <button class="viewnav-btn active" data-view="reports" type="button">Reports</button>
     </nav>
@@ -317,7 +340,7 @@
   <p>MDTS PT Tracker &bull; Daily physical training logging</p>
 </footer>
 
-<script src="config.js?v=8"></script>
-<script type="module" src="app.js?v=8"></script>
+<script src="config.js?v=9"></script>
+<script type="module" src="app.js?v=9"></script>
 </body>
 </html>
