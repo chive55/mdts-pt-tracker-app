@@ -86,7 +86,9 @@ async function enterApp(user, fallbackName) {
     return;
   }
   $("btn-signout").classList.remove("hidden");
-  if (profile.role === "admin") $("nav-admin").classList.remove("hidden");
+  if (profile.role === "admin") {
+    document.querySelectorAll(".admin-only").forEach((el) => el.classList.remove("hidden"));
+  }
   show("view-dashboard");
   await loadDashboard();
 }
@@ -292,6 +294,9 @@ function wireNav() {
       if (target === "admin") {
         show("view-admin");
         loadRoster();
+      } else if (target === "reports") {
+        show("view-reports");
+        loadReports();
       } else {
         show("view-dashboard");
       }
@@ -301,6 +306,7 @@ function wireNav() {
   $("btn-back-roster").addEventListener("click", () => {
     $("member-detail-card").classList.add("hidden");
   });
+  wireReports();
 }
 
 async function loadRoster() {
@@ -377,6 +383,265 @@ async function showMemberDetail(m) {
   }
   $("member-detail-card").classList.remove("hidden");
   $("member-detail-card").scrollIntoView({ behavior: "smooth" });
+}
+
+/* ---------- Reports ---------- */
+
+let reportPreset = "today";
+let reportTab = "roster";
+let reportRows = [];
+let reportLogs = [];
+let reportMembers = new Map();
+let reportRange = { start: "", end: "" };
+let reportSort = { key: "sessions", dir: -1 };
+
+const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : 0);
+
+function presetRange(preset) {
+  const end = todayStr();
+  if (preset === "today") return { start: end, end };
+  if (preset === "week") {
+    const day = new Date(end + "T12:00:00").getDay();
+    const back = day === 0 ? -6 : 1 - day;
+    return { start: addDaysStr(end, back), end };
+  }
+  if (preset === "last7") return { start: addDaysStr(end, -6), end };
+  if (preset === "month") return { start: end.slice(0, 8) + "01", end };
+  if (preset === "last30") return { start: addDaysStr(end, -29), end };
+  const s = $("report-start").value || end;
+  const e = $("report-end").value || end;
+  return s <= e ? { start: s, end: e } : { start: e, end: s };
+}
+
+function wireReports() {
+  document.querySelectorAll("#report-presets .chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      document.querySelectorAll("#report-presets .chip").forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      reportPreset = chip.dataset.preset;
+      $("report-custom").classList.toggle("hidden", reportPreset !== "custom");
+      if (reportPreset === "custom") {
+        if (!$("report-start").value) $("report-start").value = addDaysStr(todayStr(), -29);
+        if (!$("report-end").value) $("report-end").value = todayStr();
+      }
+      loadReports();
+    });
+  });
+  $("report-start").addEventListener("change", () => { if (reportPreset === "custom") loadReports(); });
+  $("report-end").addEventListener("change", () => { if (reportPreset === "custom") loadReports(); });
+  document.querySelectorAll("[data-rtab]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-rtab]").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      reportTab = btn.dataset.rtab;
+      $("report-roster-wrap").classList.toggle("hidden", reportTab !== "roster");
+      $("report-activity-wrap").classList.toggle("hidden", reportTab !== "activity");
+      renderReport();
+    });
+  });
+  $("report-search").addEventListener("input", renderReport);
+  $("report-roster-wrap").addEventListener("click", (e) => {
+    const th = e.target.closest("th.sortable");
+    if (!th) return;
+    const key = th.dataset.sort;
+    if (reportSort.key === key) {
+      reportSort.dir *= -1;
+    } else {
+      reportSort = { key, dir: key === "name" ? 1 : -1 };
+    }
+    renderRosterTab();
+  });
+  $("btn-export-csv").addEventListener("click", exportReportCSV);
+  $("btn-print-report").addEventListener("click", () => window.print());
+}
+
+async function loadReports() {
+  const { start, end } = presetRange(reportPreset);
+  reportRange = { start, end };
+  $("report-range-label").textContent = `${prettyDate(start)} to ${prettyDate(end)}`;
+  $("report-roster-wrap").innerHTML = '<p class="muted">Loading report...</p>';
+  $("report-activity-wrap").innerHTML = "";
+
+  const [mRes, lRes] = await Promise.all([
+    supabase.from("profiles").select("id,name,email").order("name"),
+    supabase.from("pt_logs")
+      .select("user_id,log_date,duration_minutes,activities,notes")
+      .gte("log_date", start).lte("log_date", end)
+      .order("log_date", { ascending: false }),
+  ]);
+  if (mRes.error || lRes.error) {
+    $("report-roster-wrap").innerHTML = '<p class="muted">Could not load the report. Try again.</p>';
+    return;
+  }
+  reportMembers = new Map(mRes.data.map((m) => [m.id, m]));
+  reportLogs = lRes.data || [];
+
+  const agg = new Map();
+  mRes.data.forEach((m) =>
+    agg.set(m.id, { member: m, sessions: 0, minutes: 0, days: new Set(), last: null })
+  );
+  reportLogs.forEach((log) => {
+    const a = agg.get(log.user_id);
+    if (!a) return;
+    a.sessions += 1;
+    a.minutes += log.duration_minutes || 0;
+    a.days.add(log.log_date);
+    if (!a.last || log.log_date > a.last) a.last = log.log_date;
+  });
+  reportRows = [...agg.values()].map((a) => ({
+    member: a.member,
+    sessions: a.sessions,
+    minutes: a.minutes,
+    days: a.days.size,
+    last: a.last,
+    logged: a.sessions > 0,
+  }));
+  renderReport();
+}
+
+function renderReport() {
+  const total = reportRows.length;
+  const logged = reportRows.filter((r) => r.logged).length;
+  const sessions = reportRows.reduce((s, r) => s + r.sessions, 0);
+  const minutes = reportRows.reduce((s, r) => s + r.minutes, 0);
+  const avgDays = total ? (reportRows.reduce((s, r) => s + r.days, 0) / total).toFixed(1) : "0.0";
+  $("report-stats").innerHTML = `
+    <div class="stat"><div class="stat-num">${total}</div><div class="stat-label">Members</div></div>
+    <div class="stat"><div class="stat-num">${logged}</div><div class="stat-label">Logged (${pct(logged, total)}%)</div></div>
+    <div class="stat"><div class="stat-num">${total - logged}</div><div class="stat-label">Missing</div></div>
+    <div class="stat"><div class="stat-num">${sessions}</div><div class="stat-label">Sessions</div></div>
+    <div class="stat"><div class="stat-num">${minutes}</div><div class="stat-label">Minutes</div></div>
+    <div class="stat"><div class="stat-num">${avgDays}</div><div class="stat-label">Avg days / member</div></div>`;
+  renderRosterTab();
+  renderActivityTab();
+}
+
+function filteredReportRows() {
+  const q = $("report-search").value.trim().toLowerCase();
+  let rows = reportRows;
+  if (reportTab === "roster" && q) {
+    rows = rows.filter((r) =>
+      (r.member.name + " " + (r.member.email || "")).toLowerCase().includes(q)
+    );
+  }
+  const { key, dir } = reportSort;
+  return [...rows].sort((a, b) => {
+    let va, vb;
+    if (key === "name") { va = a.member.name.toLowerCase(); vb = b.member.name.toLowerCase(); }
+    else if (key === "last") { va = a.last || ""; vb = b.last || ""; }
+    else { va = a[key]; vb = b[key]; }
+    if (va < vb) return -1 * dir;
+    if (va > vb) return 1 * dir;
+    return 0;
+  });
+}
+
+function sortArrow(key) {
+  if (reportSort.key !== key) return "";
+  return reportSort.dir === 1 ? " &#9650;" : " &#9660;";
+}
+
+function renderRosterTab() {
+  const box = $("report-roster-wrap");
+  const rows = filteredReportRows();
+  if (!rows.length) {
+    box.innerHTML = '<p class="muted">No members match.</p>';
+    return;
+  }
+  box.innerHTML = `
+    <div class="table-scroll">
+    <table class="report-table">
+      <thead><tr>
+        <th class="sortable" data-sort="name">Member${sortArrow("name")}</th>
+        <th class="sortable num" data-sort="sessions">Sessions${sortArrow("sessions")}</th>
+        <th class="sortable num" data-sort="minutes">Minutes${sortArrow("minutes")}</th>
+        <th class="sortable num" data-sort="days">Days${sortArrow("days")}</th>
+        <th class="sortable" data-sort="last">Last logged${sortArrow("last")}</th>
+        <th>Status</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map((r) => `
+          <tr>
+            <td><strong>${esc(r.member.name)}</strong><div class="sub">${esc(r.member.email || "")}</div></td>
+            <td class="num">${r.sessions}</td>
+            <td class="num">${r.minutes}</td>
+            <td class="num">${r.days}</td>
+            <td>${r.last ? prettyDate(r.last) : "<span class='sub'>Never</span>"}</td>
+            <td><span class="badge ${r.logged ? "badge-logged" : "badge-missing"}">${r.logged ? "Logged" : "Missing"}</span></td>
+          </tr>`).join("")}
+      </tbody>
+    </table>
+    </div>`;
+}
+
+function renderActivityTab() {
+  const box = $("report-activity-wrap");
+  const q = $("report-search").value.trim().toLowerCase();
+  let logs = reportLogs;
+  if (reportTab === "activity" && q) {
+    logs = logs.filter((log) => {
+      const m = reportMembers.get(log.user_id);
+      const hay = (
+        (m ? m.name : "") + " " +
+        (log.activities || []).map((a) => a.name).join(" ") + " " +
+        (log.notes || "")
+      ).toLowerCase();
+      return hay.includes(q);
+    });
+  }
+  if (!logs.length) {
+    box.innerHTML = '<p class="muted">No activity in this period.</p>';
+    return;
+  }
+  box.innerHTML = logs.map((log) => {
+    const m = reportMembers.get(log.user_id);
+    const acts = (log.activities || []).map((a) => a.name + activitySummary(a)).join(", ");
+    return `
+      <div class="activity-row">
+        <div class="row-top">
+          <span class="who">${esc(m ? m.name : "Unknown member")}</span>
+          <span class="when">${prettyDate(log.log_date)} &bull; ${log.duration_minutes || 0} min</span>
+        </div>
+        <div class="what">${esc(acts) || "PT logged"}</div>
+        ${log.notes ? `<div class="notes">${esc(log.notes)}</div>` : ""}
+      </div>`;
+  }).join("");
+}
+
+function csvCell(v) {
+  const s = String(v ?? "");
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function exportReportCSV() {
+  const { start, end } = reportRange;
+  let headers, lines;
+  if (reportTab === "roster") {
+    headers = ["Name", "Email", "Sessions", "Minutes", "Days active", "Last logged", "Status"];
+    lines = filteredReportRows().map((r) => [
+      r.member.name, r.member.email || "", r.sessions, r.minutes, r.days,
+      r.last || "", r.logged ? "Logged" : "Missing",
+    ]);
+  } else {
+    headers = ["Date", "Name", "Duration (min)", "Activities", "Notes"];
+    lines = reportLogs.map((log) => {
+      const m = reportMembers.get(log.user_id);
+      return [
+        log.log_date, m ? m.name : "", log.duration_minutes || 0,
+        (log.activities || []).map((a) => a.name + activitySummary(a)).join("; "),
+        log.notes || "",
+      ];
+    });
+  }
+  const csv = "\ufeff" + [headers, ...lines].map((row) => row.map(csvCell).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `mdts-pt-report-${start}-to-${end}-${reportTab}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 
 /* ---------- Init ---------- */
