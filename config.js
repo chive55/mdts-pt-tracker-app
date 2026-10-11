@@ -3,5 +3,5 @@
 // security policies in the database are what protect member data.
 window.MDTS_CONFIG = {
   SUPABASE_URL: "https://gwmtvlgkuzalkqsmazwd.supabase.co",
-  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3bXR2bGdrdXphbGtxc21hendkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4NDM4NjUsImV4cCI6MjEwNTQxOTg2NX0.0ilGlXZ0uDVTbx5MhGfXa8hiN7EpGnm5FdaSMnAef2A"
+  SUPABASE_ANON_KEY: "sb_publishable_6Df1hYW7FKHCbnCs7y3t-g_2uns9aLL"
 };
