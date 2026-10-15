@@ -360,6 +360,10 @@ async function populateLogForMembers() {
   sel.value = profile.id;
 }
 
+function isAdmin() {
+  return !!(profile && profile.role === "admin");
+}
+
 function logTargetId() {
   if (profile && profile.role === "admin" && !$("log-for-wrap").classList.contains("hidden")) {
     return $("log-for-member").value || profile.id;
@@ -497,8 +501,7 @@ function wireLogForm() {
     const notes = $("log-notes").value.trim();
     try {
       const targetId = logTargetId();
-      const { error } = await supabase.from("pt_logs").upsert(
-        {
+      const row = {
           user_id: targetId,
           log_date: logDate,
           session_type: selSessionType,
@@ -508,13 +511,14 @@ function wireLogForm() {
           location: $("log-location").value.trim(),
           distance_miles: Number.isFinite(distRaw) && distRaw > 0 ? distRaw : null,
           reps: Number.isFinite(repsRaw) && repsRaw > 0 ? repsRaw : null,
-          ptl_verified: $("log-ptl").checked,
           duration_minutes: duration,
           notes,
           activities: [],
-        },
-        { onConflict: "user_id,log_date" }
-      );
+        };
+      // Only admins may set PTL verification. Member saves omit the field so an
+      // insert gets the DB default (false) and an edit keeps the existing value.
+      if (isAdmin()) row.ptl_verified = $("log-ptl").checked;
+      const { error } = await supabase.from("pt_logs").upsert(row, { onConflict: "user_id,log_date" });
       if (error) throw error;
       $("log-saved").classList.remove("hidden");
       resetLogForm();
@@ -658,13 +662,14 @@ function memberLabel(m) {
 
 let rosterCache = [];
 let lastRosterLoggedBy = new Map();
+let lastRosterVerified = new Map();
 
 async function loadRoster() {
   const date = $("admin-date").value || todayStr();
   $("admin-date").value = date;
   const [{ data: members, error: mErr }, { data: logs, error: lErr }] = await Promise.all([
     supabase.from("profiles").select("id,name,email,role,rank,flight,pfa_due_date,pfa_score,created_at").order("name"),
-    supabase.from("pt_logs").select("user_id,duration_minutes").eq("log_date", date),
+    supabase.from("pt_logs").select("user_id,duration_minutes,ptl_verified").eq("log_date", date),
   ]);
   if (mErr || lErr) {
     $("admin-summary").textContent = "Could not load the roster.";
@@ -672,6 +677,7 @@ async function loadRoster() {
   }
   rosterCache = members || [];
   lastRosterLoggedBy = new Map((logs || []).map((l) => [l.user_id, l.duration_minutes]));
+  lastRosterVerified = new Map((logs || []).map((l) => [l.user_id, !!l.ptl_verified]));
   renderRoster(date, lastRosterLoggedBy);
 }
 
@@ -698,11 +704,12 @@ function renderRoster(date, loggedBy) {
         <div class="roster-name">${esc(memberLabel(m))}
           <span class="role-badge ${m.role === "admin" ? "is-admin" : ""}">${m.role === "admin" ? "Admin" : "Member"}</span>
         </div>
-        <div class="roster-sub">${esc([m.flight, m.email].filter(Boolean).join(" • "))}${logged ? ` • ${loggedBy.get(m.id)} min` : ""}</div>
+        <div class="roster-sub">${esc([m.flight, m.email].filter(Boolean).join(" • "))}${logged ? ` • ${loggedBy.get(m.id)} min` : ""}${logged && lastRosterVerified.get(m.id) ? ' <span class="tag ptl">PTL verified</span>' : ""}</div>
         <div class="roster-pfa">${pfaPill(m)}${m.pfa_score != null ? ` <span class="sub">PFA ${esc(String(m.pfa_score))}</span>` : ""}</div>
       </div>
       <span class="badge ${logged ? "on" : "off"}">${logged ? "Logged" : "Missing"}</span>
       <div class="roster-btns">
+        ${logged ? `<button type="button" class="btn btn-ghost btn-sm" data-act="verify">${lastRosterVerified.get(m.id) ? "Unverify" : "Verify"}</button>` : ""}
         <button type="button" class="btn btn-ghost btn-sm" data-act="report">Report</button>
         ${m.id !== profile.id ? `<button type="button" class="btn btn-danger" data-act="delete">Delete</button>` : ""}
       </div>`;
@@ -710,6 +717,21 @@ function renderRoster(date, loggedBy) {
       e.stopPropagation();
       openMemberReport(m.id);
     });
+    const vBtn = row.querySelector('[data-act="verify"]');
+    if (vBtn) {
+      vBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const next = !lastRosterVerified.get(m.id);
+        vBtn.disabled = true;
+        const { error } = await supabase.from("pt_logs")
+          .update({ ptl_verified: next })
+          .eq("user_id", m.id).eq("log_date", date);
+        vBtn.disabled = false;
+        if (error) return alert("Could not update verification: " + error.message);
+        lastRosterVerified.set(m.id, next);
+        renderRoster(date, lastRosterLoggedBy);
+      });
+    }
     const rmBtn = row.querySelector('[data-act="delete"]');
     if (rmBtn) {
       rmBtn.addEventListener("click", async (e) => {
